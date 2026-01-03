@@ -1,0 +1,16 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/compare/route": "app/api/compare/route.js",
+  "/api/outlooks/[id]/route": "app/api/outlooks/[id]/route.js",
+  "/api/outlooks/route": "app/api/outlooks/route.js",
+  "/api/stats/institutions/route": "app/api/stats/institutions/route.js",
+  "/api/stats/route": "app/api/stats/route.js",
+  "/api/stats/themes/route": "app/api/stats/themes/route.js",
+  "/api/stats/years/route": "app/api/stats/years/route.js",
+  "/delta/page": "app/delta/page.js",
+  "/explorer/page": "app/explorer/page.js",
+  "/historical/page": "app/historical/page.js",
+  "/page": "app/page.js",
+  "/snapshot/page": "app/snapshot/page.js"
+}
