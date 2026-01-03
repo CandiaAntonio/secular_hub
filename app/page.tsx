@@ -1,0 +1,137 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowRight, BookOpen, Quote, TrendingUp, Users } from "lucide-react";
+
+export default function Home() {
+  return (
+    <div className="space-y-8">
+      {/* Hero Section */}
+      <section className="space-y-4">
+        <h1 className="text-4xl font-bold tracking-tight text-primary">
+          Secular Forum 2026
+        </h1>
+        <p className="max-w-3xl text-xl text-muted-foreground">
+          Analyzing the five-year global economic outlook through the lens of FLAR's
+          collective intelligence.
+        </p>
+      </section>
+
+      {/* Quick Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total Outlooks"
+          value="1,248"
+          icon={<Quote className="h-4 w-4" />}
+          change={{ value: 12, direction: "up" }}
+        />
+        <StatCard
+          title="Institutions"
+          value="42"
+          icon={<Users className="h-4 w-4" />}
+          change={{ value: 0, direction: "flat" }}
+        />
+        <StatCard
+            title="Themes Tracked"
+            value="156"
+            icon={<TrendingUp className="h-4 w-4" />}
+            change={{ value: 8, direction: "up" }}
+        />
+        <StatCard
+            title="Years Covered"
+            value="8"
+            icon={<BookOpen className="h-4 w-4" />}
+        />
+      </div>
+
+      {/* Modules */}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold tracking-tight">Modules</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Snapshot Module */}
+          <Link href="/snapshot" className="group">
+            <Card className="h-full transition-colors hover:bg-muted/50">
+              <CardHeader>
+                <CardTitle className="group-hover:text-accent">Snapshot</CardTitle>
+                <CardDescription>The 2026 Consensus View</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Explore the current year's dominant themes, key risks, and
+                  institutional positioning across all major asset classes.
+                </p>
+                <Button variant="link" className="mt-4 h-auto p-0 group-hover:text-accent">
+                  Explore Snapshot <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Delta Module */}
+          <Link href="/delta" className="group">
+            <Card className="h-full transition-colors hover:bg-muted/50">
+              <CardHeader>
+                <CardTitle className="group-hover:text-accent">Delta</CardTitle>
+                <CardDescription>Year-over-Year Changes</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Analyze how the narrative has shifted from 2025 to 2026. Identify
+                  emerging themes and fading convictions.
+                </p>
+                <Button variant="link" className="mt-4 h-auto p-0 group-hover:text-accent">
+                  Analyze Delta <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Historical Module */}
+          <Link href="/historical" className="group">
+            <Card className="h-full transition-colors hover:bg-muted/50 opacity-60">
+              <CardHeader>
+                <CardTitle>Historical</CardTitle>
+                <CardDescription>Eight-Year View (Phase 2)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Longitudinal analysis of secular themes since 2019. Track the
+                  evolution of "inflation", "deglobalization", and "AI".
+                </p>
+                <div className="mt-4 flex items-center text-xs font-medium text-warning">
+                  COMING SOON
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Explorer Module */}
+          <Link href="/explorer" className="group">
+            <Card className="h-full transition-colors hover:bg-muted/50 opacity-60">
+              <CardHeader>
+                <CardTitle>Explorer</CardTitle>
+                <CardDescription>Deep Dive (Phase 2)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Full-text search and semantic exploration of the investment outlook
+                  corpus.
+                </p>
+                <div className="mt-4 flex items-center text-xs font-medium text-warning">
+                  COMING SOON
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </section>
+
+       {/* Methodology Note */}
+       <div className="rounded-lg bg-muted p-4 text-xs text-muted-foreground">
+        <strong>Methodology Note:</strong> This data is derived from the "Bloomberg Investment Outlooks" dataset. 
+        It represents a synthesis of public market commentary and does not constitute financial advice.
+      </div>
+    </div>
+  );
+}
