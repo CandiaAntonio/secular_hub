@@ -1,4 +1,4 @@
-export const themeMapping: Record<string, string> = {
+const themeMapping = {
   // Macro Outlook
   "BASE CASE": "Macro Outlook",
   "GROWTH": "Macro Outlook",
