@@ -1,4 +1,4 @@
-export const institutionMapping: Record<string, string> = {
+const institutionMapping = {
   "Goldman Sachs Asset Management": "Goldman Sachs",
   "J.P. Morgan Asset Management": "J.P. Morgan",
   "BlackRock Investment Institute": "BlackRock",
@@ -9,6 +9,7 @@ export const institutionMapping: Record<string, string> = {
   "Deutsche Bank Research": "Deutsche Bank",
   "HSBC Global Research": "HSBC",
   "UBS Global Wealth Management": "UBS",
-  "Wells Fargo Investment Institute": "Wells Fargo",
-  // Add more as needed based on analysis
+  "Wells Fargo Investment Institute": "Wells Fargo"
 };
+
+module.exports = { institutionMapping };

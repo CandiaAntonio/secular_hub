@@ -44,7 +44,7 @@ export async function getOutlooks(filter: OutlookFilter) {
   return { data, total, page, limit };
 }
 
-export async function getOutlookById(id: number) {
+export async function getOutlookById(id: string) {
   return prisma.outlookCall.findUnique({
     where: { id },
   });

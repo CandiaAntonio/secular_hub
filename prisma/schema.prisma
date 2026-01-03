@@ -8,18 +8,18 @@ datasource db {
 }
 
 model OutlookCall {
-  id                 Int      @id // Assuming Excel ID is unique and using it as PK
-  year               Int
-  institution        String
-  institutionCanonical String @map("institution_canonical") // Normalized name
-  theme              String
-  subTheme           String?  @map("sub_theme")
-  themeCategory      String   @map("theme_category") // Computed
-  sectionDescription String?  @map("section_description")
-  callText           String?  @map("call_text")
-  rank               Int?
-  convictionTier     String   @map("conviction_tier") // high, medium, low
-  wordCount          Int      @map("word_count") // Computed
+  id                   String  @id // Using Excel ID (String)
+  year                 Int
+  institution          String
+  institutionCanonical String  @map("institution_canonical") // Normalized name
+  theme                String
+  subTheme             String? @map("sub_theme")
+  themeCategory        String  @map("theme_category") // Computed
+  sectionDescription   String? @map("section_description")
+  callText             String? @map("call_text")
+  rank                 Int?
+  convictionTier       String  @map("conviction_tier") // high, medium, low
+  wordCount            Int     @map("word_count") // Computed
 
   @@map("outlook_calls")
 }

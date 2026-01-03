@@ -1,10 +1,10 @@
 
-import * as XLSX from 'xlsx';
-import * as fs from 'fs';
-import * as path from 'path';
-import { PrismaClient } from '@prisma/client';
-import { themeMapping } from './theme-mapping';
-import { institutionMapping } from './institution-mapping';
+const XLSX = require('xlsx');
+const fs = require('fs');
+const path = require('path');
+const { PrismaClient } = require('@prisma/client');
+const { themeMapping: themeMap } = require('./theme-mapping');
+const { institutionMapping: instMap } = require('./institution-mapping');
 
 const prisma = new PrismaClient();
 
@@ -28,11 +28,11 @@ async function ingest() {
   // Use a transaction for better performance?
   // Actually, standard inserts are fine for 7k records, but we can batch.
 
-  for (const row of data as any[]) {
+  for (const row of data) {
     const originalTheme = row.Theme ? row.Theme.toString().trim() : 'Unknown';
-    const category = themeMapping[originalTheme] || 'Thematic'; // Default to Thematic if unknown
+    const category = themeMap[originalTheme] || 'Thematic'; // Default to Thematic if unknown
     const originalInst = row.Institution ? row.Institution.toString().trim() : 'Unknown';
-    const cleanInst = institutionMapping[originalInst] || originalInst;
+    const cleanInst = instMap[originalInst] || originalInst;
     
     // Normalize cleanInst further? E.g. removing " LLC" etc?
     // Using simple mapping for now.

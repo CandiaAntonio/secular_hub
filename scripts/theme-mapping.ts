@@ -10,12 +10,10 @@ const themeMapping = {
   "VOLATILITY": "Macro Outlook",
   "UNEMPLOYMENT": "Macro Outlook",
 
-  // Inflation & Prices
   "INFLATION": "Inflation & Prices",
   "DISINFLATION": "Inflation & Prices",
   "WAGES": "Inflation & Prices",
 
-  // Monetary Policy
   "MONETARY POLICY": "Monetary Policy",
   "PIVOT": "Monetary Policy",
   "RATE CUTS": "Monetary Policy",
@@ -27,11 +25,9 @@ const themeMapping = {
   "LIQUIDITY": "Monetary Policy",
   "NEGATIVE RATES": "Monetary Policy",
 
-  // Fiscal Policy
   "FISCAL": "Fiscal Policy",
   "STIMULUS": "Fiscal Policy",
 
-  // Equities
   "STOCKS": "Equities",
   "COMPANIES": "Equities",
   "EARNINGS": "Equities",
@@ -45,7 +41,6 @@ const themeMapping = {
   "TECH": "Equities",
   "RALLY": "Equities",
 
-  // Fixed Income
   "BONDS": "Fixed Income",
   "CREDIT": "Fixed Income",
   "YIELDS": "Fixed Income",
@@ -57,28 +52,23 @@ const themeMapping = {
   "INCOME": "Fixed Income",
   "STEEPENING": "Fixed Income",
 
-  // Currencies
   "CURRENCIES": "Currencies",
   "DOLLAR": "Currencies",
 
-  // Commodities
   "COMMODITIES": "Commodities",
   "METALS": "Commodities",
   "ENERGY": "Commodities",
 
-  // Alternatives
   "ALTERNATIVE ASSETS": "Alternatives",
   "REAL ESTATE": "Alternatives",
   "PRIVATE MARKETS": "Alternatives",
   "HEDGE FUNDS": "Alternatives",
 
-  // Multi-Asset
   "MULTI ASSET": "Multi-Asset",
   "DIVERSIFICATION": "Multi-Asset",
   "HEDGING": "Multi-Asset",
   "RETURNS": "Multi-Asset",
 
-  // Regions
   "US": "Regions",
   "UK": "Regions",
   "EUROPE": "Regions",
@@ -88,7 +78,6 @@ const themeMapping = {
   "GLOBAL": "Regions",
   "JAPAN": "Regions",
 
-  // Thematic
   "AI": "Thematic",
   "ESG": "Thematic",
   "WAR": "Thematic",
@@ -102,5 +91,7 @@ const themeMapping = {
   "TRADE": "Thematic",
   "COVID": "Thematic",
   "BREXIT": "Thematic",
-  "CONSUMERS": "Thematic" // Mapping 'CONSUMERS' here as closest fit or Macro? Let's go with Thematic/Macro. Stick to Thematic for specific user trends.
+  "CONSUMERS": "Thematic"
 };
+
+module.exports = { themeMapping };

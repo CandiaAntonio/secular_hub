@@ -3,8 +3,8 @@ import { getOutlookById } from '@/lib/db/queries';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const id = parseInt(params.id);
-    if (isNaN(id)) {
+    const id = params.id;
+    if (!id) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
