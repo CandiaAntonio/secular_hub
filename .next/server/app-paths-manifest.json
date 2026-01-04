@@ -1,9 +1,12 @@
 {
-  "/historical/page": "app/historical/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
   "/explorer/page": "app/explorer/page.js",
+  "/historical/page": "app/historical/page.js",
+  "/api/outlooks/route": "app/api/outlooks/route.js",
+  "/api/stats/institutions/route": "app/api/stats/institutions/route.js",
   "/delta/page": "app/delta/page.js",
   "/api/stats/themes/route": "app/api/stats/themes/route.js",
-  "/page": "app/page.js",
-  "/api/stats/route": "app/api/stats/route.js",
+  "/api/ai/summary/route": "app/api/ai/summary/route.js",
   "/snapshot/page": "app/snapshot/page.js"
 }
