@@ -1,8 +1,9 @@
 {
+  "/historical/page": "app/historical/page.js",
+  "/explorer/page": "app/explorer/page.js",
+  "/delta/page": "app/delta/page.js",
+  "/api/stats/themes/route": "app/api/stats/themes/route.js",
   "/page": "app/page.js",
   "/api/stats/route": "app/api/stats/route.js",
-  "/explorer/page": "app/explorer/page.js",
-  "/historical/page": "app/historical/page.js",
-  "/delta/page": "app/delta/page.js",
   "/snapshot/page": "app/snapshot/page.js"
 }

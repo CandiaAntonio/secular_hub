@@ -55,31 +55,31 @@ export async function getStats() {
     prisma.outlookCall.count(),
     prisma.outlookCall.groupBy({
       by: ['year'],
-      _count: { _all: true },
+      _count: { year: true },
       orderBy: { year: 'desc' },
     }),
     prisma.outlookCall.groupBy({
       by: ['themeCategory'],
-      _count: { _all: true },
+      _count: { themeCategory: true },
       // @ts-ignore: Prisma orderBy syntax for aggregated groups can be tricky in TS
-      orderBy: { _count: { _all: 'desc' } },
+      orderBy: { _count: { themeCategory: 'desc' } },
     }),
     prisma.outlookCall.groupBy({
       by: ['institutionCanonical'],
-      _count: { _all: true },
+      _count: { institutionCanonical: true },
       // @ts-ignore
-      orderBy: { _count: { _all: 'desc' } },
+      orderBy: { _count: { institutionCanonical: 'desc' } },
     }),
   ]);
 
   return {
     total_records: Number(total),
     // @ts-ignore: _count property existence
-    years: years.map(y => ({ year: y.year, count: Number(y._count?._all || 0) })),
+    years: years.map(y => ({ year: y.year, count: Number(y._count?.year || 0) })),
     // @ts-ignore
-    themes: themes.map(t => ({ theme: t.themeCategory, count: Number(t._count?._all || 0) })),
+    themes: themes.map(t => ({ theme: t.themeCategory, count: Number(t._count?.themeCategory || 0) })),
     // @ts-ignore
-    institutions: institutions.map(i => ({ institution: i.institutionCanonical, count: Number(i._count?._all || 0) })),
+    institutions: institutions.map(i => ({ institution: i.institutionCanonical, count: Number(i._count?.institutionCanonical || 0) })),
   };
 }
 
@@ -88,12 +88,12 @@ export async function getCompareStats(year1: number, year2: number) {
      prisma.outlookCall.groupBy({
        by: ['themeCategory'],
        where: { year: year1 },
-       _count: { _all: true },
+       _count: { themeCategory: true },
      }),
      prisma.outlookCall.groupBy({
        by: ['themeCategory'],
        where: { year: year2 },
-       _count: { _all: true },
+       _count: { themeCategory: true },
      }),
      prisma.outlookCall.groupBy({
        by: ['institutionCanonical', 'themeCategory'],
@@ -107,9 +107,9 @@ export async function getCompareStats(year1: number, year2: number) {
 
   // Process Themes
   // @ts-ignore
-  const themes1Map = new Map(y1Themes.map(t => [t.themeCategory, t._count?._all || 0]));
+  const themes1Map = new Map(y1Themes.map(t => [t.themeCategory, Number(t._count?.themeCategory || 0)]));
   // @ts-ignore
-  const themes2Map = new Map(y2Themes.map(t => [t.themeCategory, t._count?._all || 0]));
+  const themes2Map = new Map(y2Themes.map(t => [t.themeCategory, Number(t._count?.themeCategory || 0)]));
   
   // @ts-ignore: Set iteration downlevel handled by tsconfig
   const allThemes = new Set([...themes1Map.keys(), ...themes2Map.keys()]);
