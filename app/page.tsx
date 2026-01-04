@@ -6,6 +6,7 @@ import { ArrowRight, BookOpen, Quote, TrendingUp, Users } from "lucide-react";
 import { MethodologySection } from "@/components/ui/collapsible-methodology";
 
 import { getStats } from "@/lib/db/queries";
+import { fallbackHomeStats } from "@/lib/mock-data";
 
 export const dynamic = 'force-dynamic';
 
@@ -15,13 +16,7 @@ export default async function Home() {
     stats = await getStats();
   } catch (error) {
     console.error("Failed to fetch stats for home page:", error);
-    // Fallback data for Demo reliability
-    stats = {
-      total_records: 7582,
-      years: [{ year: 2026, count: 1248 }, { year: 2025, count: 1100 }],
-      themes: [{ theme: "AI", count: 150 }],
-      institutions: [{ institution: "JPM", count: 12 }]
-    };
+    stats = fallbackHomeStats;
   }
 
   // Calculate changes (mock logic or real if data allows)

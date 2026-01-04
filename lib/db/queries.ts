@@ -1,5 +1,5 @@
 import { prisma } from './client';
-import { OutlookCall, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 export type OutlookFilter = {
   year?: number;
@@ -10,6 +10,27 @@ export type OutlookFilter = {
   limit?: number;
   page?: number;
   search?: string;
+};
+
+// Types for Prisma groupBy results
+type YearGroupResult = {
+  year: number;
+  _count: { year: number };
+};
+
+type ThemeCategoryGroupResult = {
+  themeCategory: string;
+  _count: { themeCategory: number };
+};
+
+type InstitutionGroupResult = {
+  institutionCanonical: string;
+  _count: { institutionCanonical: number };
+};
+
+type InstitutionThemeGroupResult = {
+  institutionCanonical: string;
+  themeCategory: string;
 };
 
 export async function getOutlooks(filter: OutlookFilter) {
@@ -51,7 +72,7 @@ export async function getOutlookById(id: string) {
 }
 
 export async function getStats() {
-  const [total, years, themes, institutions] = await Promise.all([
+  const [total, yearsRaw, themesRaw, institutionsRaw] = await Promise.all([
     prisma.outlookCall.count(),
     prisma.outlookCall.groupBy({
       by: ['year'],
@@ -61,30 +82,30 @@ export async function getStats() {
     prisma.outlookCall.groupBy({
       by: ['themeCategory'],
       _count: { themeCategory: true },
-      // @ts-ignore: Prisma orderBy syntax for aggregated groups can be tricky in TS
       orderBy: { _count: { themeCategory: 'desc' } },
     }),
     prisma.outlookCall.groupBy({
       by: ['institutionCanonical'],
       _count: { institutionCanonical: true },
-      // @ts-ignore
       orderBy: { _count: { institutionCanonical: 'desc' } },
     }),
   ]);
 
+  // Cast to proper types for safe access
+  const years = yearsRaw as YearGroupResult[];
+  const themes = themesRaw as ThemeCategoryGroupResult[];
+  const institutions = institutionsRaw as InstitutionGroupResult[];
+
   return {
     total_records: Number(total),
-    // @ts-ignore: _count property existence
-    years: years.map(y => ({ year: y.year, count: Number(y._count?.year || 0) })),
-    // @ts-ignore
-    themes: themes.map(t => ({ theme: t.themeCategory, count: Number(t._count?.themeCategory || 0) })),
-    // @ts-ignore
-    institutions: institutions.map(i => ({ institution: i.institutionCanonical, count: Number(i._count?.institutionCanonical || 0) })),
+    years: years.map(y => ({ year: y.year, count: Number(y._count.year) })),
+    themes: themes.map(t => ({ theme: t.themeCategory, count: Number(t._count.themeCategory) })),
+    institutions: institutions.map(i => ({ institution: i.institutionCanonical, count: Number(i._count.institutionCanonical) })),
   };
 }
 
 export async function getCompareStats(year1: number, year2: number) {
-  const [y1Themes, y2Themes, y1Inst, y2Inst] = await Promise.all([
+  const [y1ThemesRaw, y2ThemesRaw, y1InstRaw, y2InstRaw] = await Promise.all([
      prisma.outlookCall.groupBy({
        by: ['themeCategory'],
        where: { year: year1 },
@@ -105,14 +126,21 @@ export async function getCompareStats(year1: number, year2: number) {
      }),
   ]);
 
+  // Cast to proper types
+  const y1Themes = y1ThemesRaw as ThemeCategoryGroupResult[];
+  const y2Themes = y2ThemesRaw as ThemeCategoryGroupResult[];
+  const y1Inst = y1InstRaw as InstitutionThemeGroupResult[];
+  const y2Inst = y2InstRaw as InstitutionThemeGroupResult[];
+
   // Process Themes
-  // @ts-ignore
-  const themes1Map = new Map(y1Themes.map(t => [t.themeCategory, Number(t._count?.themeCategory || 0)]));
-  // @ts-ignore
-  const themes2Map = new Map(y2Themes.map(t => [t.themeCategory, Number(t._count?.themeCategory || 0)]));
-  
-  // @ts-ignore: Set iteration downlevel handled by tsconfig
-  const allThemes = new Set([...themes1Map.keys(), ...themes2Map.keys()]);
+  const themes1Map = new Map<string, number>(
+    y1Themes.map(t => [t.themeCategory, Number(t._count.themeCategory)])
+  );
+  const themes2Map = new Map<string, number>(
+    y2Themes.map(t => [t.themeCategory, Number(t._count.themeCategory)])
+  );
+
+  const allThemes = new Set<string>([...themes1Map.keys(), ...themes2Map.keys()]);
   const themes_emerged: string[] = [];
   const themes_extinct: string[] = [];
   const themes_grew: { theme: string; delta: number }[] = [];

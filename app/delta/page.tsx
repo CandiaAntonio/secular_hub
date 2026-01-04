@@ -8,55 +8,28 @@ import { ThemeSankey } from "@/components/delta/theme-sankey";
 import { ConvictionShift } from "@/components/delta/conviction-shift";
 import { InstitutionPivots } from "@/components/delta/institution-pivots";
 import { useCompareYears } from "@/lib/hooks/use-compare-years";
+import {
+  getDeltaStats,
+  mockSankeyData,
+  mockConvictionShifts,
+  mockInstitutionPivots,
+} from "@/lib/mock-data";
 
 export default function DeltaPage() {
   const { year1, year2 } = useCompareYears();
   const { comparison, institutions, aiNarrative, isLoading, error } = useDeltaData();
 
-  // Construct stats for the row
-  // In a real app, this would come from the API or be calculated from comparison data
-  // Using mocks or derived data for now if API structure isn't fully known
-  const stats = [
-    { label: "Total Calls", value: "+198", subValue: "+26% YoY", trend: "up" as const },
-    { label: "New Themes", value: "12", subValue: `in ${year2}`, trend: "up" as const },
-    { label: "Extinct Themes", value: "8", subValue: `from ${year1}`, trend: "down" as const },
-    { label: "Pivoting Inst.", value: "24", subValue: "Changed Top Conviction", trend: "neutral" as const },
-  ];
+  // Parse years as numbers for stats display
+  const y1 = parseInt(year1, 10);
+  const y2 = parseInt(year2, 10);
 
-  // Mocking detailed data if hook returns null (waiting for backend)
-  // so we can see the UI structure
-  const mockSankeyData = {
-    nodes: [
-        { name: "Inflation" }, { name: "Growth" }, { name: "Geopolitics" }, 
-        { name: "Inflation" }, { name: "Growth" }, { name: "AI Infra" }, { name: "De-globalization" }
-    ],
-    links: [
-        { source: 0, target: 3, value: 40 }, // Inflation -> Inflation
-        { source: 0, target: 4, value: 20 }, // Inflation -> Growth
-        { source: 1, target: 4, value: 50 }, // Growth -> Growth
-        { source: 2, target: 6, value: 30 }, // Geopolitics -> De-globalization
-        { source: 1, target: 5, value: 10 }, // Growth -> AI Infra
-    ]
-  };
+  // Stats row - uses mock data generator with current years
+  const stats = getDeltaStats(y1, y2);
 
-  const mockShifts = [
-      { theme: "AI", rankYear1: 10, rankYear2: 2, delta: 8 },
-      { theme: "Recession", rankYear1: 15, rankYear2: 5, delta: 10 },
-      { theme: "Inflation", rankYear1: 1, rankYear2: 3, delta: -2 },
-      { theme: "Trade War", rankYear1: 5, rankYear2: 20, delta: -15 },
-  ];
-
-  const mockPivots = [
-      { institution: "Goldman Sachs", themeYear1: "Inflation", themeYear2: "Growth", isPivot: true },
-      { institution: "JPMorgan", themeYear1: "Rates", themeYear2: "Credit", isPivot: true },
-      { institution: "BlackRock", themeYear1: "AI", themeYear2: "AI", isPivot: false },
-      { institution: "Morgan Stanley", themeYear1: "Cyclicals", themeYear2: "Quality", isPivot: true },
-  ];
-
-  // Use API data if available, else mock
-  const displaySankey = comparison?.sankey || mockSankeyData; 
-  const displayShifts = comparison?.shifts || mockShifts;
-  const displayPivots = institutions?.pivots || mockPivots; 
+  // Use API data if available, fallback to mock data for demo resilience
+  const displaySankey = comparison?.sankey || mockSankeyData;
+  const displayShifts = comparison?.shifts || mockConvictionShifts;
+  const displayPivots = institutions?.pivots || mockInstitutionPivots;
   const displayNarrative = aiNarrative?.data || null;
 
   return (

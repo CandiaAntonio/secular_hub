@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StatsResponse, OutlookCall } from '@/types/outlook';
+import { fallbackThemes, fallbackInstitutions, fallbackStats } from '@/lib/mock-data';
 
 interface SnapshotData {
   themes: { theme: string; count: number }[];
@@ -57,34 +58,13 @@ export function useSnapshotData(year: number = 2026) {
       } catch (err) {
         console.error('Snapshot data fetch error:', err);
         // Fallback for Demo resilience
-        const fallbackThemes = [
-            { theme: "Artificial Intelligence", count: 145 },
-            { theme: "Deglobalization", count: 89 },
-            { theme: "Energy Transition", count: 76 },
-            { theme: "Soft Landing", count: 65 },
-            { theme: "Inflation Persistence", count: 54 },
-            { theme: "Geopolitical Risk", count: 43 }
-        ];
-        const fallbackInsts = [
-            { institution: "J.P. Morgan", count: 12 },
-            { institution: "Goldman Sachs", count: 11 },
-            { institution: "Morgan Stanley", count: 10 },
-            { institution: "BlackRock", count: 9 },
-            { institution: "Amundi", count: 8 }
-        ];
-        
         setData({
-             themes: fallbackThemes,
-             institutions: fallbackInsts,
-             outlooks: [], // Empty outlooks might limit Modal drill-down but main view works
-             stats: { 
-                 total_records: 1248,
-                 years: [],
-                 themes: fallbackThemes,
-                 institutions: fallbackInsts
-             },
-             loading: false,
-             error: null, // Clear error to show UI
+          themes: fallbackThemes,
+          institutions: fallbackInstitutions,
+          outlooks: [],
+          stats: fallbackStats,
+          loading: false,
+          error: null,
         });
       }
     };

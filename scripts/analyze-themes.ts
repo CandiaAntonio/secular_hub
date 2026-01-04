@@ -1,7 +1,11 @@
+import * as XLSX from 'xlsx';
+import * as fs from 'fs';
+import * as path from 'path';
 
-const XLSX = require('xlsx');
-const fs = require('fs');
-const path = require('path');
+interface ExcelRow {
+  Theme?: string;
+  [key: string]: unknown;
+}
 
 const filePath = path.join(process.cwd(), 'Bloomberg_Outlooks_2019_2026.xlsx');
 console.log(`Reading file from: ${filePath}`);
@@ -13,12 +17,12 @@ if (!fs.existsSync(filePath)) {
 
 const wb = XLSX.readFile(filePath);
 const sheet = wb.Sheets[wb.SheetNames[0]];
-const data = XLSX.utils.sheet_to_json(sheet);
+const data = XLSX.utils.sheet_to_json<ExcelRow>(sheet);
 
-const themes = new Set();
-data.forEach((r: any) => {
+const themes = new Set<string>();
+data.forEach((r) => {
   if (r.Theme) {
-      themes.add(r.Theme.toString().trim());
+    themes.add(r.Theme.toString().trim());
   }
 });
 

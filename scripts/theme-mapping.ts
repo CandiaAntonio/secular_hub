@@ -1,4 +1,4 @@
-const themeMapping = {
+export const themeMapping: Record<string, string> = {
   // Macro Outlook
   "BASE CASE": "Macro Outlook",
   "GROWTH": "Macro Outlook",
@@ -93,5 +93,3 @@ const themeMapping = {
   "BREXIT": "Thematic",
   "CONSUMERS": "Thematic"
 };
-
-module.exports = { themeMapping };

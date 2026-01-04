@@ -1,10 +1,20 @@
+import * as XLSX from 'xlsx';
+import * as fs from 'fs';
+import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
+import { themeMapping as themeMap } from './theme-mapping';
+import { institutionMapping as instMap } from './institution-mapping';
 
-const XLSX = require('xlsx');
-const fs = require('fs');
-const path = require('path');
-const { PrismaClient } = require('@prisma/client');
-const { themeMapping: themeMap } = require('./theme-mapping');
-const { institutionMapping: instMap } = require('./institution-mapping');
+interface ExcelRow {
+  id: string;
+  Year?: string | number;
+  Theme?: string;
+  Institution?: string;
+  Sub_theme?: string;
+  Section_description?: string;
+  Call_text?: string;
+  Rank?: string | number;
+}
 
 const prisma = new PrismaClient();
 
@@ -18,26 +28,19 @@ async function ingest() {
   console.log('Reading Excel file...');
   const wb = XLSX.readFile(filePath);
   const sheet = wb.Sheets[wb.SheetNames[0]];
-  const data = XLSX.utils.sheet_to_json(sheet);
+  const data = XLSX.utils.sheet_to_json<ExcelRow>(sheet);
 
   console.log(`Found ${data.length} records. Starting ingestion...`);
 
-  const batchSize = 100;
   let processed = 0;
-
-  // Use a transaction for better performance?
-  // Actually, standard inserts are fine for 7k records, but we can batch.
 
   for (const row of data) {
     const originalTheme = row.Theme ? row.Theme.toString().trim() : 'Unknown';
-    const category = themeMap[originalTheme] || 'Thematic'; // Default to Thematic if unknown
+    const category = themeMap[originalTheme] || 'Thematic';
     const originalInst = row.Institution ? row.Institution.toString().trim() : 'Unknown';
     const cleanInst = instMap[originalInst] || originalInst;
     
-    // Normalize cleanInst further? E.g. removing " LLC" etc?
-    // Using simple mapping for now.
-    
-    const rank = row.Rank ? parseInt(row.Rank) : null;
+    const rank = row.Rank ? parseInt(String(row.Rank)) : null;
     let conviction = 'low';
     if (rank) {
       if (rank <= 10) conviction = 'high';
@@ -49,8 +52,8 @@ async function ingest() {
 
     await prisma.outlookCall.create({
       data: {
-        id: row.id, // Using Excel ID
-        year: parseInt(row.Year) || 0,
+        id: row.id,
+        year: row.Year ? parseInt(String(row.Year)) : 0,
         institution: originalInst,
         institutionCanonical: cleanInst,
         theme: originalTheme,

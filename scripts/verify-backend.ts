@@ -1,10 +1,6 @@
+import { PrismaClient } from '@prisma/client';
 
-const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-// We can't easily import the query functions if they are ES modules in lib/db/queries.ts
-// So we will just use prisma directly here to verify.
-// Or we can try to require them if we make queries.ts compatible, but queries.ts is part of Next app so likely ESM/TS.
-// Verification script will just use Prisma Client.
 
 async function verify() {
   console.log('Verifying Backend Infrastructure...');
