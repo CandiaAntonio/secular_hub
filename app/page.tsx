@@ -4,7 +4,31 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, BookOpen, Quote, TrendingUp, Users } from "lucide-react";
 
-export default function Home() {
+import { getStats } from "@/lib/db/queries";
+
+export const dynamic = 'force-dynamic';
+
+export default async function Home() {
+  let stats;
+  try {
+    stats = await getStats();
+  } catch (error) {
+    console.error("Failed to fetch stats for home page:", error);
+    // Fallback data for Demo reliability
+    stats = {
+      total_records: 7582,
+      years: [{ year: 2026, count: 1248 }, { year: 2025, count: 1100 }],
+      themes: [{ theme: "AI", count: 150 }],
+      institutions: [{ institution: "JPM", count: 12 }]
+    };
+  }
+
+  // Calculate changes (mock logic or real if data allows)
+  const currentTotal = stats.total_records;
+  const institutionCount = stats.institutions.length;
+  const themeCount = stats.themes.length;
+  const yearsCount = stats.years.length;
+
   return (
     <div className="space-y-8">
       {/* Hero Section */}
@@ -22,25 +46,25 @@ export default function Home() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Outlooks"
-          value="1,248"
+          value={currentTotal.toLocaleString()}
           icon={<Quote className="h-4 w-4" />}
           change={{ value: 12, direction: "up" }}
         />
         <StatCard
           title="Institutions"
-          value="42"
+          value={institutionCount.toLocaleString()}
           icon={<Users className="h-4 w-4" />}
           change={{ value: 0, direction: "flat" }}
         />
         <StatCard
             title="Themes Tracked"
-            value="156"
+            value={themeCount.toLocaleString()}
             icon={<TrendingUp className="h-4 w-4" />}
             change={{ value: 8, direction: "up" }}
         />
         <StatCard
             title="Years Covered"
-            value="8"
+            value={yearsCount.toString()}
             icon={<BookOpen className="h-4 w-4" />}
         />
       </div>

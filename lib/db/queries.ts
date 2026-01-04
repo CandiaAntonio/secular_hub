@@ -73,13 +73,13 @@ export async function getStats() {
   ]);
 
   return {
-    total_records: total,
+    total_records: Number(total),
     // @ts-ignore: _count property existence
-    years: years.map(y => ({ year: y.year, count: y._count?._all || 0 })),
+    years: years.map(y => ({ year: y.year, count: Number(y._count?._all || 0) })),
     // @ts-ignore
-    themes: themes.map(t => ({ theme: t.themeCategory, count: t._count?._all || 0 })),
+    themes: themes.map(t => ({ theme: t.themeCategory, count: Number(t._count?._all || 0) })),
     // @ts-ignore
-    institutions: institutions.map(i => ({ institution: i.institutionCanonical, count: i._count?._all || 0 })),
+    institutions: institutions.map(i => ({ institution: i.institutionCanonical, count: Number(i._count?._all || 0) })),
   };
 }
 

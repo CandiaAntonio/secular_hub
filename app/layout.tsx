@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { DemoController } from "@/components/demo/demo-controller";
+import { DemoScript } from "@/components/demo/demo-script";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,6 +30,8 @@ export default function RootLayout({
             </main>
           </div>
         </div>
+        <DemoController />
+        <DemoScript />
       </body>
     </html>
   );
