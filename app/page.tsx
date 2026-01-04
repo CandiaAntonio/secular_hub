@@ -3,6 +3,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, BookOpen, Quote, TrendingUp, Users } from "lucide-react";
+import { MethodologySection } from "@/components/ui/collapsible-methodology";
 
 import { getStats } from "@/lib/db/queries";
 
@@ -34,18 +35,20 @@ export default async function Home() {
       {/* Hero Section */}
       <section className="space-y-4">
         <h1 className="text-4xl font-bold tracking-tight text-primary">
-          Secular Forum 2026
+          Here&apos;s (Almost) Everything Wall Street Expects in 2026
         </h1>
         <p className="max-w-3xl text-xl text-muted-foreground">
-          Analyzing the five-year global economic outlook through the lens of FLAR's
-          collective intelligence.
+          A searchable archive of Wall Street&apos;s year-ahead forecasts, curated from Bloomberg&apos;s annual outlook compilations
         </p>
       </section>
+
+      {/* Methodology Section */}
+      <MethodologySection />
 
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Outlooks"
+          title="Calls"
           value={currentTotal.toLocaleString()}
           icon={<Quote className="h-4 w-4" />}
           change={{ value: 12, direction: "up" }}
@@ -153,8 +156,7 @@ export default async function Home() {
 
        {/* Methodology Note */}
        <div className="rounded-lg bg-muted p-4 text-xs text-muted-foreground">
-        <strong>Methodology Note:</strong> This data is derived from the "Bloomberg Investment Outlooks" dataset. 
-        It represents a synthesis of public market commentary and does not constitute financial advice.
+        <strong>Methodology Note:</strong> Source: Bloomberg Investment Outlooks (2019-2026). Editorial compilation — not investment advice.
       </div>
     </div>
   );
