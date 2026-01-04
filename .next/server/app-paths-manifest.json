@@ -1,4 +1,11 @@
 {
+  "/api/compare/route": "app/api/compare/route.js",
+  "/delta/page": "app/delta/page.js",
+  "/api/stats/institutions/route": "app/api/stats/institutions/route.js",
+  "/historical/page": "app/historical/page.js",
+  "/api/ai/delta/route": "app/api/ai/delta/route.js",
   "/page": "app/page.js",
-  "/api/stats/route": "app/api/stats/route.js"
+  "/api/stats/themes/route": "app/api/stats/themes/route.js",
+  "/explorer/page": "app/explorer/page.js",
+  "/snapshot/page": "app/snapshot/page.js"
 }
