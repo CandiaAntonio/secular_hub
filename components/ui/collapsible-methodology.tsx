@@ -32,16 +32,8 @@ export function MethodologySection() {
                 <li>Editorial ranking by apparent conviction (not quantitative scores)</li>
                 <li>Thematic categorization by editorial relevance</li>
                 <li>Base cases identified by Bloomberg's editorial judgment</li>
+                <li>Conviction rankings reflect editorial interpretation; source content originated as marketing material</li>
               </ul>
-            </div>
-
-            <div className="rounded-md bg-yellow-500/10 p-3 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20">
-              <p className="font-semibold flex items-center gap-2">
-                <span>⚠️</span> Conviction rankings reflect editorial interpretation.
-              </p>
-              <p className="mt-1">
-                Source content originated as marketing material. This is not investment advice.
-              </p>
             </div>
           </div>
         ) : (

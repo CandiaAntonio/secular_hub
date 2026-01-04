@@ -42,13 +42,22 @@ export default async function Home() {
         </p>
       </section>
 
+      {/* Banner Image */}
+      <div className="w-full my-6 flex justify-center">
+        <img 
+          src="/images/bull_chip.gif" 
+          alt="AI Bull - Wall Street Outlook"
+          className="h-48 w-auto rounded-lg"
+        />
+      </div>
+
       {/* Methodology Section */}
       <MethodologySection />
 
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Calls"
+          title="Investment Views"
           value={currentTotal.toLocaleString()}
           icon={<Quote className="h-4 w-4" />}
           change={{ value: 12, direction: "up" }}
@@ -154,10 +163,7 @@ export default async function Home() {
         </div>
       </section>
 
-       {/* Methodology Note */}
-       <div className="rounded-lg bg-muted p-4 text-xs text-muted-foreground">
-        <strong>Methodology Note:</strong> Source: Bloomberg Investment Outlooks (2019-2026). Editorial compilation — not investment advice.
-      </div>
+
     </div>
   );
 }
