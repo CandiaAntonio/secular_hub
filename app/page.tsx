@@ -33,23 +33,26 @@ export default async function Home() {
   return (
     <div className="space-y-8">
       {/* Hero Section */}
-      <section className="space-y-4">
-        <h1 className="text-4xl font-bold tracking-tight text-primary">
-          Here&apos;s (Almost) Everything Wall Street Expects in 2026
-        </h1>
-        <p className="max-w-3xl text-xl text-muted-foreground">
-          A searchable archive of Wall Street&apos;s year-ahead forecasts, curated from Bloomberg&apos;s annual outlook compilations
-        </p>
-      </section>
+      <section className="flex items-start justify-between gap-8">
+        <div className="flex-1 space-y-4">
+          <h1 className="text-4xl font-bold tracking-tight text-primary">
+            Here&apos;s (Almost) Everything Wall Street Expects in 2026
+          </h1>
+          <p className="max-w-3xl text-xl text-muted-foreground">
+            A searchable archive of Wall Street&apos;s year-ahead forecasts, curated from Bloomberg&apos;s annual outlook compilations
+          </p>
+        </div>
 
-      {/* Banner Image */}
-      <div className="w-full my-6 flex justify-center">
-        <img 
-          src="/images/bull_chip.gif" 
-          alt="AI Bull - Wall Street Outlook"
-          className="h-48 w-auto rounded-lg"
-        />
-      </div>
+        {/* Banner Image */}
+        <div className="flex-shrink-0 hidden md:block">
+          <img 
+            src="/images/bull_debug.gif" 
+            alt="AI Bull"
+            className="h-32 w-auto rounded-lg"
+            loading="eager"
+          />
+        </div>
+      </section>
 
       {/* Methodology Section */}
       <MethodologySection />
