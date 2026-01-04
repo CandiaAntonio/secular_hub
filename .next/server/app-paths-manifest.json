@@ -1,11 +1,11 @@
 {
-  "/api/stats/themes/route": "app/api/stats/themes/route.js",
-  "/api/compare/route": "app/api/compare/route.js",
-  "/api/stats/institutions/route": "app/api/stats/institutions/route.js",
-  "/api/ai/delta/route": "app/api/ai/delta/route.js",
-  "/delta/page": "app/delta/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js",
-  "/historical/page": "app/historical/page.js",
+  "/delta/page": "app/delta/page.js",
+  "/api/stats/themes/route": "app/api/stats/themes/route.js",
   "/explorer/page": "app/explorer/page.js",
+  "/api/ai/summary/route": "app/api/ai/summary/route.js",
+  "/api/outlooks/route": "app/api/outlooks/route.js",
+  "/historical/page": "app/historical/page.js",
   "/snapshot/page": "app/snapshot/page.js"
 }
