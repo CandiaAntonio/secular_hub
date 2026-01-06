@@ -24,7 +24,12 @@
       "Bash(git push)",
       "Bash(sqlite3:*)",
       "Bash(node scripts/analyze-bump-chart.js:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "WebSearch",
+      "WebFetch(domain:www.numberanalytics.com)",
+      "WebFetch(domain:vis.stanford.edu)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.bloomberg.com)"
     ]
   }
 }
