@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Sparkles,
   Cloud,
+  CloudRain,
 } from "lucide-react";
 
 const navigation = [
@@ -29,6 +30,7 @@ const navigation = [
   { name: "Executive", href: "/overview", icon: Briefcase },
   { name: "Snapshot", href: "/snapshot", icon: PieChart },
   { name: "Word Cloud", href: "/wordcloud", icon: Cloud },
+  { name: "Word Rain", href: "/wordrain", icon: CloudRain },
   { name: "Delta", href: "/delta", icon: TrendingUp },
   { name: "Historical", href: "/historical", icon: History },
   { name: "Narrative", href: "/narrative", icon: Sparkles },
