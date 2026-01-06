@@ -37,3 +37,6 @@ yarn-error.log*
 
 # Large Data files
 outlook_calls.json
+
+# System/Corrupted files
+nul
