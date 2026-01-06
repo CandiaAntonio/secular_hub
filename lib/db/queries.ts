@@ -73,7 +73,7 @@ export async function getOutlookById(id: string) {
 }
 
 export async function getStats() {
-  const [total, yearsRaw, themesRaw, institutionsRaw] = await Promise.all([
+  const [total, yearsRaw, themeCategoriesRaw, institutionsRaw] = await Promise.all([
     prisma.outlookCall.count(),
     prisma.outlookCall.groupBy({
       by: ['year'],
@@ -94,14 +94,105 @@ export async function getStats() {
 
   // Cast to proper types for safe access
   const years = yearsRaw as YearGroupResult[];
-  const themes = themesRaw as ThemeCategoryGroupResult[];
+  const themeCategories = themeCategoriesRaw as ThemeCategoryGroupResult[];
   const institutions = institutionsRaw as InstitutionGroupResult[];
 
   return {
     total_records: Number(total),
     years: years.map(y => ({ year: y.year, count: Number(y._count.year) })),
-    themes: themes.map(t => ({ theme: t.themeCategory, count: Number(t._count.themeCategory) })),
+    themes: themeCategories.map(t => ({ theme: t.themeCategory, count: Number(t._count.themeCategory) })),
     institutions: institutions.map(i => ({ institution: i.institutionCanonical, count: Number(i._count.institutionCanonical) })),
+  };
+}
+
+// Extended stats for home page with all metrics
+export async function getHomeStats() {
+  const [
+    total,
+    yearsRaw,
+    institutionsRaw,
+    themesRaw,
+    themeCategoriesRaw,
+    subThemesRaw,
+    convictionRaw
+  ] = await Promise.all([
+    prisma.outlookCall.count(),
+    prisma.outlookCall.groupBy({
+      by: ['year'],
+      _count: { year: true },
+      orderBy: { year: 'desc' },
+    }),
+    prisma.outlookCall.groupBy({
+      by: ['institutionCanonical'],
+      _count: { institutionCanonical: true },
+      orderBy: { _count: { institutionCanonical: 'desc' } },
+    }),
+    prisma.outlookCall.groupBy({
+      by: ['theme'],
+      _count: { theme: true },
+      orderBy: { _count: { theme: 'desc' } },
+    }),
+    prisma.outlookCall.groupBy({
+      by: ['themeCategory'],
+      _count: { themeCategory: true },
+      orderBy: { _count: { themeCategory: 'desc' } },
+    }),
+    prisma.outlookCall.groupBy({
+      by: ['subTheme'],
+      _count: { subTheme: true },
+    }),
+    prisma.outlookCall.groupBy({
+      by: ['convictionTier'],
+      _count: { convictionTier: true },
+    }),
+  ]);
+
+  // Cast types
+  const years = yearsRaw as YearGroupResult[];
+  const institutions = institutionsRaw as InstitutionGroupResult[];
+  const themes = themesRaw as Array<{ theme: string; _count: { theme: number } }>;
+  const themeCategories = themeCategoriesRaw as ThemeCategoryGroupResult[];
+  const subThemes = subThemesRaw as Array<{ subTheme: string | null; _count: { subTheme: number } }>;
+  const conviction = convictionRaw as ConvictionGroupResult[];
+
+  // Calculate conviction counts
+  const convictionMap = new Map(
+    conviction.map(c => [c.convictionTier, Number(c._count.convictionTier)])
+  );
+
+  // Find peak year (most views)
+  const yearsWithCounts = years.map(y => ({ year: y.year, count: Number(y._count.year) }));
+  const peakYearData = yearsWithCounts.reduce((max, y) => y.count > max.count ? y : max, yearsWithCounts[0]);
+
+  // Get current year institutions count (most recent year)
+  const currentYear = Math.max(...yearsWithCounts.map(y => y.year));
+
+  return {
+    totalViews: Number(total),
+    yearsCount: years.length,
+    years: yearsWithCounts,
+    institutionsCount: institutions.length,
+    institutions: institutions.map(i => ({
+      institution: i.institutionCanonical,
+      count: Number(i._count.institutionCanonical)
+    })),
+    themesCount: themes.length,
+    themeCategoriesCount: themeCategories.length,
+    themeCategories: themeCategories.map(t => ({
+      category: t.themeCategory,
+      count: Number(t._count.themeCategory)
+    })),
+    subThemesCount: subThemes.filter(s => s.subTheme !== null).length,
+    conviction: {
+      high: convictionMap.get('high') || 0,
+      medium: convictionMap.get('medium') || 0,
+      low: convictionMap.get('low') || 0,
+    },
+    avgViewsPerYear: Math.round(Number(total) / years.length),
+    avgViewsPerInstitution: Math.round(Number(total) / institutions.length),
+    peakYear: peakYearData.year,
+    peakYearViews: peakYearData.count,
+    currentYear,
   };
 }
 
