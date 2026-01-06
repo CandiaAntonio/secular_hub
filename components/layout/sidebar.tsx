@@ -20,6 +20,7 @@ import {
   Briefcase,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 
 const navigation = [
@@ -28,6 +29,7 @@ const navigation = [
   { name: "Snapshot", href: "/snapshot", icon: PieChart },
   { name: "Delta", href: "/delta", icon: TrendingUp },
   { name: "Historical", href: "/historical", icon: History },
+  { name: "Narrative", href: "/narrative", icon: Sparkles },
   { name: "Explorer", href: "/explorer", icon: Compass },
 ];
 
