@@ -10,7 +10,17 @@
       "Bash(cat:*)",
       "Bash(npx shadcn@latest add:*)",
       "Bash(curl:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(copy \"C:\\\\1 Projects\\\\secular_forum\\\\secular_hub\\\\prisma\\\\dev.db\" \"C:\\\\1 Projects\\\\secular_forum\\\\secular_hub\\\\prisma\\\\dev.db.backup\")",
+      "Bash(cmd /c copy:*)",
+      "Bash(cp:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npx prisma generate)",
+      "Bash(taskkill:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
