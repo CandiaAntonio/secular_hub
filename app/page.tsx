@@ -1,16 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
   ArrowRight,
-  GitCompare,
   Calendar,
   Building2,
   FileText,
   Tags,
   FolderTree,
-  Bookmark,
-  Layers
+  Bookmark
 } from "lucide-react";
 
 import { getHomeStats, getBaseCasesByYear } from "@/lib/db/queries";
@@ -241,72 +238,6 @@ export default async function Home() {
               </Card>
             </Link>
           ))}
-        </div>
-      </section>
-
-      {/* Explore Section */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-1 bg-primary rounded-full" />
-          <h2 className="text-2xl font-bold tracking-tight">Explore the Data</h2>
-        </div>
-        <p className="text-muted-foreground">
-          Two analytical modules for navigating eight years of Wall Street consensus — drill into any
-          single year or compare how narratives evolved across market cycles.
-        </p>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Snapshot Module */}
-          <Link href="/snapshot" className="group">
-            <Card className="h-full transition-all hover:bg-muted/50 hover:border-primary/50 hover:shadow-lg">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <Layers className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="group-hover:text-primary transition-colors">Snapshot</CardTitle>
-                    <p className="text-sm text-muted-foreground">Single-year deep dive</p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Explore any year&apos;s consensus view — dominant themes, institutional positioning,
-                  conviction distribution, and key risks.
-                </p>
-                <Button variant="outline" size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  View Snapshot <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Delta Module */}
-          <Link href="/delta" className="group">
-            <Card className="h-full transition-all hover:bg-muted/50 hover:border-primary/50 hover:shadow-lg">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <GitCompare className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="group-hover:text-primary transition-colors">Delta</CardTitle>
-                    <p className="text-sm text-muted-foreground">Year-over-year comparison</p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Analyze how the narrative shifts between years. Identify emerging themes,
-                  fading convictions, and institutional pivots.
-                </p>
-                <Button variant="outline" size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  Compare Years <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </Link>
         </div>
       </section>
 
