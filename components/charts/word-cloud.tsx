@@ -12,6 +12,10 @@ export interface WordData {
   value: number;
 }
 
+export interface SentimentData {
+  [word: string]: number; // -1 (bearish) to 1 (bullish)
+}
+
 interface WordCloudProps {
   words: WordData[];
   width?: number;
@@ -19,9 +23,18 @@ interface WordCloudProps {
   title?: string;
   onWordClick?: (word: string) => void;
   className?: string;
+  sentimentData?: SentimentData;
+  showSentiment?: boolean;
 }
 
-// Financial-themed color palette
+// Sentiment-based colors
+const SENTIMENT_COLORS = {
+  bullish: '#22c55e',   // green-500
+  neutral: '#64748b',   // slate-500
+  bearish: '#ef4444',   // red-500
+};
+
+// Financial-themed color palette (fallback when no sentiment)
 const COLORS = [
   '#22c55e', // green-500 (growth)
   '#3b82f6', // blue-500 (policy)
@@ -35,7 +48,7 @@ const COLORS = [
   '#ef4444', // red-500 (risk)
 ];
 
-// Words that should have specific colors based on their meaning
+// Words that should have specific colors based on their meaning (fallback)
 const SEMANTIC_COLORS: Record<string, string> = {
   growth: '#22c55e',
   inflation: '#f97316',
@@ -68,11 +81,26 @@ const SEMANTIC_COLORS: Record<string, string> = {
   valuations: '#8b5cf6',
 };
 
-function getWordColor(word: string): string {
+function getWordColor(
+  word: string,
+  sentimentData?: SentimentData,
+  showSentiment?: boolean
+): string {
   const lowerWord = word.toLowerCase();
+
+  // Use sentiment-based colors if available
+  if (showSentiment && sentimentData && sentimentData[lowerWord] !== undefined) {
+    const sentiment = sentimentData[lowerWord];
+    if (sentiment > 0.3) return SENTIMENT_COLORS.bullish;
+    if (sentiment < -0.3) return SENTIMENT_COLORS.bearish;
+    return SENTIMENT_COLORS.neutral;
+  }
+
+  // Fallback to semantic colors
   if (SEMANTIC_COLORS[lowerWord]) {
     return SEMANTIC_COLORS[lowerWord];
   }
+
   // Use consistent color based on word hash
   const hash = lowerWord.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return COLORS[hash % COLORS.length];
@@ -90,7 +118,9 @@ export function WordCloud({
   height = 500,
   title,
   onWordClick,
-  className
+  className,
+  sentimentData,
+  showSentiment = false
 }: WordCloudProps) {
   const [hoveredWord, setHoveredWord] = useState<string | null>(null);
 
@@ -109,6 +139,16 @@ export function WordCloud({
   }, [words]);
 
   const fontSizeSetter = (datum: WordData) => fontScale(datum.value);
+
+  // Get sentiment info for tooltip
+  const getSentimentLabel = (word: string): string | null => {
+    if (!showSentiment || !sentimentData) return null;
+    const sentiment = sentimentData[word.toLowerCase()];
+    if (sentiment === undefined) return null;
+    if (sentiment > 0.3) return 'bullish';
+    if (sentiment < -0.3) return 'bearish';
+    return 'neutral';
+  };
 
   if (words.length === 0) {
     return (
@@ -149,7 +189,7 @@ export function WordCloud({
             {(cloudWords) =>
               cloudWords.map((w, i) => {
                 const isHovered = hoveredWord === w.text;
-                const color = getWordColor(w.text || '');
+                const color = getWordColor(w.text || '', sentimentData, showSentiment);
 
                 return (
                   <Text
@@ -182,8 +222,19 @@ export function WordCloud({
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-3 py-1.5 rounded-md shadow-lg border text-sm">
             <span className="font-semibold">{hoveredWord}</span>
             <span className="text-muted-foreground ml-2">
-              ({words.find(w => w.text === hoveredWord)?.value || 0} mentions)
+              ({words.find(w => w.text === hoveredWord)?.value || 0}{' '}
+              {typeof words[0]?.value === 'number' && words[0]?.value % 1 !== 0 ? 'score' : 'mentions'})
             </span>
+            {showSentiment && getSentimentLabel(hoveredWord) && (
+              <span className={cn(
+                "ml-2 px-1.5 py-0.5 rounded text-xs font-medium",
+                getSentimentLabel(hoveredWord) === 'bullish' && "bg-green-100 text-green-700",
+                getSentimentLabel(hoveredWord) === 'bearish' && "bg-red-100 text-red-700",
+                getSentimentLabel(hoveredWord) === 'neutral' && "bg-slate-100 text-slate-700"
+              )}>
+                {getSentimentLabel(hoveredWord)}
+              </span>
+            )}
           </div>
         )}
       </CardContent>

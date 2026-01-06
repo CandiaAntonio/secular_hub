@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/client';
+import nlp from 'compromise';
+import natural from 'natural';
+const { TfIdf } = natural;
 
 // Common English stopwords to exclude
 const STOPWORDS = new Set([
@@ -23,7 +26,35 @@ const STOPWORDS = new Set([
   'hadn', 'hasn', 'haven', 'isn', 'ma', 'mightn', 'mustn', 'needn', 'shan', 'shouldn',
   'wasn', 'weren', 'won', 'wouldn', 'well', 'one', 'two', 'like', 'much', 'many',
   'way', 'back', 'first', 'last', 'long', 'new', 'old', 'high', 'low', 'good',
-  'bad', 'best', 'worst', 'next', 'part', 'likely', 'given', 'across', 'around'
+  'bad', 'best', 'worst', 'next', 'part', 'likely', 'given', 'across', 'around',
+  // Financial stopwords - common but not insightful
+  'year', 'years', 'expect', 'expected', 'expecting', 'outlook', 'view', 'views',
+  'believe', 'believes', 'think', 'thinks', 'see', 'sees', 'remain', 'remains',
+  'continue', 'continues', 'continued', 'look', 'looking', 'term', 'near', 'recent',
+  'recently', 'current', 'currently', 'potential', 'potentially', 'likely', 'unlikely',
+  'possible', 'possibly', 'suggest', 'suggests', 'suggesting', 'indicate', 'indicates',
+  'including', 'include', 'includes', 'particularly', 'especially', 'significant',
+  'significantly', 'relatively', 'overall', 'generally', 'typically', 'essentially'
+]);
+
+// Financial phrases to look for (bigrams and trigrams)
+const FINANCIAL_PHRASES = new Set([
+  'rate cuts', 'rate hikes', 'interest rates', 'federal reserve', 'central bank',
+  'central banks', 'soft landing', 'hard landing', 'credit spreads', 'yield curve',
+  'quantitative easing', 'quantitative tightening', 'monetary policy', 'fiscal policy',
+  'trade war', 'trade tensions', 'emerging markets', 'developed markets',
+  'risk assets', 'risk appetite', 'risk aversion', 'bond yields', 'treasury yields',
+  'corporate bonds', 'high yield', 'investment grade', 'equity markets', 'stock market',
+  'labor market', 'job market', 'real estate', 'supply chain', 'supply chains',
+  'economic growth', 'gdp growth', 'inflation expectations', 'price pressures',
+  'balance sheet', 'earnings growth', 'profit margins', 'valuations', 'multiple expansion',
+  'multiple compression', 'bull market', 'bear market', 'market volatility',
+  'dollar strength', 'dollar weakness', 'oil prices', 'energy prices', 'commodity prices',
+  'consumer spending', 'consumer confidence', 'business confidence', 'capital expenditure',
+  'geopolitical risk', 'geopolitical risks', 'political risk', 'election risk',
+  'debt ceiling', 'government shutdown', 'recession risk', 'recession fears',
+  'global growth', 'synchronized growth', 'divergent growth', 'stagflation',
+  'disinflation', 'deflation', 'reflation', 'taper tantrum', 'pivot'
 ]);
 
 // Minimum word length to include
@@ -33,17 +64,105 @@ const MIN_WORD_LENGTH = 3;
 const DEFAULT_LIMIT = 100;
 const ALLOWED_LIMITS = [50, 100, 150];
 
+// Extract words from text
+function extractWords(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-zA-Z\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word =>
+      word.length >= MIN_WORD_LENGTH &&
+      !STOPWORDS.has(word) &&
+      !/^\d+$/.test(word)
+    );
+}
+
+// Extract phrases (bigrams and trigrams) from text using compromise
+function extractPhrases(text: string): string[] {
+  const doc = nlp(text.toLowerCase());
+  const phrases: string[] = [];
+
+  // Extract noun phrases
+  doc.nouns().forEach((noun: { text: () => string }) => {
+    const phrase = noun.text().trim();
+    if (phrase.split(' ').length >= 2 && phrase.length >= 5) {
+      phrases.push(phrase);
+    }
+  });
+
+  // Extract verb phrases that might be interesting (e.g., "cutting rates")
+  doc.verbs().forEach((verb: { text: () => string }) => {
+    const phrase = verb.text().trim();
+    if (phrase.split(' ').length >= 2 && phrase.length >= 5) {
+      phrases.push(phrase);
+    }
+  });
+
+  // Manual bigram extraction for financial phrases
+  const words = text.toLowerCase().replace(/[^a-zA-Z\s]/g, ' ').split(/\s+/);
+  for (let i = 0; i < words.length - 1; i++) {
+    const bigram = `${words[i]} ${words[i + 1]}`;
+    if (FINANCIAL_PHRASES.has(bigram)) {
+      phrases.push(bigram);
+    }
+    // Trigrams
+    if (i < words.length - 2) {
+      const trigram = `${words[i]} ${words[i + 1]} ${words[i + 2]}`;
+      if (FINANCIAL_PHRASES.has(trigram)) {
+        phrases.push(trigram);
+      }
+    }
+  }
+
+  return phrases.filter(p =>
+    p.length >= 5 &&
+    !STOPWORDS.has(p) &&
+    p.split(' ').every(w => !STOPWORDS.has(w) || FINANCIAL_PHRASES.has(p))
+  );
+}
+
+// Calculate TF-IDF scores for terms across documents
+function calculateTfIdf(documents: string[], mode: 'words' | 'phrases'): Map<string, number> {
+  const tfidf = new TfIdf();
+  const termScores = new Map<string, number>();
+
+  // Add each document to TF-IDF
+  documents.forEach(doc => {
+    if (mode === 'words') {
+      tfidf.addDocument(extractWords(doc).join(' '));
+    } else {
+      tfidf.addDocument(extractPhrases(doc).join(' '));
+    }
+  });
+
+  // Calculate aggregate TF-IDF scores across all documents
+  documents.forEach((_, docIndex) => {
+    tfidf.listTerms(docIndex).forEach((item: { term: string; tfidf: number }) => {
+      const currentScore = termScores.get(item.term) || 0;
+      termScores.set(item.term, currentScore + item.tfidf);
+    });
+  });
+
+  return termScores;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const yearParam = searchParams.get('year');
   const limitParam = searchParams.get('limit');
+  const modeParam = searchParams.get('mode') || 'words'; // 'words' or 'phrases'
+  const scoringParam = searchParams.get('scoring') || 'frequency'; // 'frequency' or 'importance'
 
   // Parse year filter
   const year = yearParam ? parseInt(yearParam, 10) : null;
 
-  // Parse limit (only allow 50 or 100)
+  // Parse limit (only allow 50, 100, or 150)
   const requestedLimit = limitParam ? parseInt(limitParam, 10) : DEFAULT_LIMIT;
   const limit = ALLOWED_LIMITS.includes(requestedLimit) ? requestedLimit : DEFAULT_LIMIT;
+
+  // Validate mode and scoring
+  const mode = modeParam === 'phrases' ? 'phrases' : 'words';
+  const scoring = scoringParam === 'importance' ? 'importance' : 'frequency';
 
   // Build query filter
   const where = year ? { year } : {};
@@ -54,33 +173,44 @@ export async function GET(request: Request) {
     select: { callText: true },
   });
 
-  // Count word frequencies
-  const wordCounts = new Map<string, number>();
+  let sortedWords: { text: string; value: number }[];
 
-  calls.forEach(call => {
-    if (!call.callText) return;
+  if (scoring === 'importance') {
+    // Use TF-IDF scoring
+    const documents = calls.map(c => c.callText || '').filter(t => t.length > 0);
+    const tfIdfScores = calculateTfIdf(documents, mode);
 
-    // Tokenize: lowercase, remove punctuation, split by whitespace
-    const words = call.callText
-      .toLowerCase()
-      .replace(/[^a-zA-Z\s]/g, ' ')
-      .split(/\s+/)
-      .filter(word =>
-        word.length >= MIN_WORD_LENGTH &&
-        !STOPWORDS.has(word) &&
-        !/^\d+$/.test(word) // Exclude pure numbers
-      );
+    sortedWords = Array.from(tfIdfScores.entries())
+      .filter(([term]) => {
+        if (mode === 'words') {
+          return term.length >= MIN_WORD_LENGTH && !STOPWORDS.has(term);
+        }
+        return term.length >= 5;
+      })
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([text, value]) => ({ text, value: Math.round(value * 100) / 100 }));
+  } else {
+    // Use frequency counting
+    const termCounts = new Map<string, number>();
 
-    words.forEach(word => {
-      wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+    calls.forEach(call => {
+      if (!call.callText) return;
+
+      const terms = mode === 'words'
+        ? extractWords(call.callText)
+        : extractPhrases(call.callText);
+
+      terms.forEach(term => {
+        termCounts.set(term, (termCounts.get(term) || 0) + 1);
+      });
     });
-  });
 
-  // Sort by frequency and take top N
-  const sortedWords = Array.from(wordCounts.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([text, value]) => ({ text, value }));
+    sortedWords = Array.from(termCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([text, value]) => ({ text, value }));
+  }
 
   // Get available years and unique institutions count
   const [yearsRaw, institutionsRaw] = await Promise.all([
@@ -100,6 +230,8 @@ export async function GET(request: Request) {
   return NextResponse.json({
     year: year || 'all',
     limit,
+    mode,
+    scoring,
     wordCount: sortedWords.length,
     totalDocuments: calls.length,
     uniqueInstitutions,

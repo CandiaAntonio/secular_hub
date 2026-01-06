@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { WordCloud, WordData } from "@/components/charts/word-cloud";
+import { WordCloud, WordData, SentimentData } from "@/components/charts/word-cloud";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -12,7 +12,9 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Cloud, FileText, Calendar, TrendingUp, Building2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Cloud, FileText, Calendar, TrendingUp, Building2, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface WordCloudResponse {
   year: number | 'all';
@@ -21,25 +23,39 @@ interface WordCloudResponse {
   uniqueInstitutions: number;
   words: WordData[];
   availableYears: number[];
+  mode: 'words' | 'phrases';
+  scoring: 'frequency' | 'importance';
+}
+
+interface SentimentResult {
+  label: 'positive' | 'negative' | 'neutral';
+  score: number;
+  normalizedScore: number;
 }
 
 export default function WordCloudPage() {
   const [selectedYear, setSelectedYear] = useState<string>("2026");
   const [wordLimit, setWordLimit] = useState<string>("100");
+  const [mode, setMode] = useState<'words' | 'phrases'>('words');
+  const [scoring, setScoring] = useState<'frequency' | 'importance'>('frequency');
   const [data, setData] = useState<WordCloudResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sentimentData, setSentimentData] = useState<SentimentData>({});
+  const [sentimentLoading, setSentimentLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
 
-  // Fetch data when year or limit changes
-  const fetchData = useCallback(async (year: string, limit: string) => {
+  // Fetch word cloud data
+  const fetchData = useCallback(async (year: string, limit: string, m: string, s: string) => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
       if (year !== "all") params.set("year", year);
       params.set("limit", limit);
+      params.set("mode", m);
+      params.set("scoring", s);
       const query = params.toString() ? `?${params.toString()}` : "";
       const res = await fetch(`/api/stats/wordcloud${query}`);
       if (!res.ok) throw new Error("Failed to fetch word cloud data");
@@ -52,9 +68,47 @@ export default function WordCloudPage() {
     }
   }, []);
 
+  // Fetch sentiment data for current words
+  const fetchSentiment = useCallback(async (words: WordData[]) => {
+    if (words.length === 0) return;
+
+    setSentimentLoading(true);
+    try {
+      const terms = words.map(w => w.text);
+      const res = await fetch('/api/stats/sentiment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ terms }),
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch sentiment");
+
+      const json = await res.json();
+      const newSentimentData: SentimentData = {};
+
+      Object.entries(json.results).forEach(([term, result]) => {
+        const r = result as SentimentResult;
+        newSentimentData[term] = r.normalizedScore;
+      });
+
+      setSentimentData(newSentimentData);
+    } catch (err) {
+      console.error("Sentiment fetch error:", err);
+    } finally {
+      setSentimentLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    fetchData(selectedYear, wordLimit);
-  }, [selectedYear, wordLimit, fetchData]);
+    fetchData(selectedYear, wordLimit, mode, scoring);
+  }, [selectedYear, wordLimit, mode, scoring, fetchData]);
+
+  // Fetch sentiment when words change
+  useEffect(() => {
+    if (data?.words && data.words.length > 0) {
+      fetchSentiment(data.words);
+    }
+  }, [data?.words, fetchSentiment]);
 
   // Responsive dimensions
   useEffect(() => {
@@ -88,7 +142,7 @@ export default function WordCloudPage() {
           </h1>
           <p className="text-muted-foreground mt-1">
             Visualize the most frequent terms in Wall Street&apos;s consensus narratives.
-            <span className="hidden sm:inline"> Word size indicates frequency.</span>
+            <span className="hidden sm:inline"> Word size indicates {scoring === 'frequency' ? 'frequency' : 'importance'}.</span>
           </p>
         </div>
 
@@ -114,7 +168,9 @@ export default function WordCloudPage() {
         {/* Unique Words - con selector */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unique Words</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {mode === 'words' ? 'Unique Words' : 'Unique Phrases'}
+            </CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -129,9 +185,9 @@ export default function WordCloudPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="50">50 words</SelectItem>
-                  <SelectItem value="100">100 words</SelectItem>
-                  <SelectItem value="150">150 words</SelectItem>
+                  <SelectItem value="50">50 {mode}</SelectItem>
+                  <SelectItem value="100">100 {mode}</SelectItem>
+                  <SelectItem value="150">150 {mode}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -160,7 +216,9 @@ export default function WordCloudPage() {
         {/* Top Term */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Top Term</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Top {mode === 'words' ? 'Term' : 'Phrase'}
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -172,13 +230,86 @@ export default function WordCloudPage() {
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              {data?.words?.[0]?.value || 0} mentions
+              {data?.words?.[0]?.value || 0} {scoring === 'frequency' ? 'mentions' : 'score'}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Word Cloud - sin card header, directo */}
+      {/* Mode Toggles */}
+      <div className="flex flex-wrap gap-4 items-center">
+        {/* Words vs Phrases Toggle */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Mode:</span>
+          <div className="flex rounded-lg border p-1">
+            <Button
+              variant={mode === 'words' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setMode('words')}
+            >
+              Words
+            </Button>
+            <Button
+              variant={mode === 'phrases' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setMode('phrases')}
+            >
+              Phrases
+            </Button>
+          </div>
+        </div>
+
+        {/* Frequency vs Importance Toggle */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Scoring:</span>
+          <div className="flex rounded-lg border p-1">
+            <Button
+              variant={scoring === 'frequency' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setScoring('frequency')}
+            >
+              Frequency
+            </Button>
+            <Button
+              variant={scoring === 'importance' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setScoring('importance')}
+            >
+              TF-IDF
+            </Button>
+          </div>
+        </div>
+
+        {/* Sentiment Loading Indicator */}
+        {sentimentLoading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Analyzing sentiment...
+          </div>
+        )}
+
+        {/* Sentiment Legend */}
+        <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-1.5">
+            <div className="h-3 w-3 rounded-full bg-green-500" />
+            <span className="text-xs text-muted-foreground">Bullish</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="h-3 w-3 rounded-full bg-slate-400" />
+            <span className="text-xs text-muted-foreground">Neutral</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="h-3 w-3 rounded-full bg-red-500" />
+            <span className="text-xs text-muted-foreground">Bearish</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Word Cloud */}
       <Card className="relative">
         <CardContent className="flex justify-center items-center min-h-[500px] pt-6">
           {loading ? (
@@ -197,6 +328,8 @@ export default function WordCloudPage() {
               width={dimensions.width}
               height={dimensions.height}
               onWordClick={handleWordClick}
+              sentimentData={sentimentData}
+              showSentiment={Object.keys(sentimentData).length > 0}
             />
           ) : (
             <p className="text-muted-foreground">No data available for this year</p>
@@ -208,22 +341,38 @@ export default function WordCloudPage() {
       {!loading && data?.words && data.words.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Top 20 Terms</CardTitle>
+            <CardTitle className="text-base">
+              Top 20 {mode === 'words' ? 'Terms' : 'Phrases'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
-              {data.words.slice(0, 20).map((word) => (
-                <div
-                  key={word.text}
-                  className="flex items-center justify-between p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                  onClick={() => handleWordClick(word.text)}
-                >
-                  <span className="font-medium capitalize truncate">{word.text}</span>
-                  <Badge variant="outline" className="ml-2 flex-shrink-0">
-                    {word.value}
-                  </Badge>
-                </div>
-              ))}
+              {data.words.slice(0, 20).map((word) => {
+                const sentiment = sentimentData[word.text];
+                let sentimentColor = 'bg-slate-100';
+                if (sentiment !== undefined) {
+                  if (sentiment > 0.3) sentimentColor = 'bg-green-50 border-green-200';
+                  else if (sentiment < -0.3) sentimentColor = 'bg-red-50 border-red-200';
+                }
+
+                return (
+                  <div
+                    key={word.text}
+                    className={cn(
+                      "flex items-center justify-between p-2 rounded-md border hover:bg-muted/50 transition-colors cursor-pointer",
+                      sentimentColor
+                    )}
+                    onClick={() => handleWordClick(word.text)}
+                  >
+                    <span className="font-medium capitalize truncate">{word.text}</span>
+                    <Badge variant="outline" className="ml-2 flex-shrink-0">
+                      {typeof word.value === 'number' && word.value % 1 !== 0
+                        ? word.value.toFixed(1)
+                        : word.value}
+                    </Badge>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
