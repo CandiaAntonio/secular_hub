@@ -269,7 +269,20 @@ export function BumpChart({
 
                 // Get base case subtitle for this year
                 const bc = baseCases.find(b => b.year === year);
-                const baseCaseText = isBaseCase && bc ? abbreviateSubtitle(bc.subtitle) : ranking.theme;
+
+                // Abbreviate long theme names
+                const getDisplayName = (theme: string) => {
+                  const abbrevThemes: Record<string, string> = {
+                    'QUANTITATIVE TIGHTENING': 'QT',
+                    'QUANTITATIVE EASING': 'QE',
+                    'MONETARY POLICY': 'MON. POLICY',
+                    'SUPPLY CHAIN': 'SUPPLY CHAIN',
+                    'NEGATIVE RATES': 'NEG. RATES',
+                  };
+                  return abbrevThemes[theme] || theme;
+                };
+
+                const baseCaseText = isBaseCase && bc ? abbreviateSubtitle(bc.subtitle) : getDisplayName(ranking.theme);
 
                 return (
                   <g
