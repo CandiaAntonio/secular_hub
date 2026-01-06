@@ -3,7 +3,14 @@
     "allow": [
       "Bash(npm audit:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(ffmpeg:*)",
+      "Bash(where:*)",
+      "Bash(npm run dev:*)",
+      "Bash(cat:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(curl:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

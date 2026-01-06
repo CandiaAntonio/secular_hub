@@ -38,13 +38,15 @@ export default async function Home() {
           </p>
         </div>
 
-        {/* Banner Image */}
+        {/* Animated Banner */}
         <div className="flex-shrink-0 hidden md:block">
-          <img 
-            src="/images/bull_debug.gif" 
-            alt="AI Bull"
+          <video
+            src="/images/Animated_Bull_Eyes_Blink_Only.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
             className="h-32 w-auto rounded-lg"
-            loading="eager"
           />
         </div>
       </section>

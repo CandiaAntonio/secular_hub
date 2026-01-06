@@ -11,10 +11,12 @@ import {
   History,
   Compass,
   Settings,
+  Briefcase,
 } from "lucide-react";
 
 const navigation = [
-  { name: "Overview", href: "/", icon: LayoutDashboard },
+  { name: "Home", href: "/", icon: LayoutDashboard },
+  { name: "Executive", href: "/overview", icon: Briefcase },
   { name: "Snapshot", href: "/snapshot", icon: PieChart },
   { name: "Delta", href: "/delta", icon: TrendingUp },
   { name: "Historical", href: "/historical", icon: History },

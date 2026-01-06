@@ -16,7 +16,7 @@ if (isAzure) {
     console.warn('Azure OpenAI credentials missing. AI features may not work.');
   }
   client = new AzureOpenAI({
-    apiKey: process.env.AZURE_OPENAI_KEY,
+    apiKey: process.env.AZURE_OPENAI_KEY || 'dummy-azure-key',
     endpoint: process.env.AZURE_OPENAI_ENDPOINT,
     deployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME,
     apiVersion: '2024-05-01-preview', // Default to a recent version
@@ -26,7 +26,7 @@ if (isAzure) {
       console.warn('OpenAI API Key missing. AI features may not work.');
   }
   client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY || 'dummy-key',
   });
 }
 

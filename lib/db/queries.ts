@@ -1,5 +1,6 @@
 import { prisma } from './client';
 import { Prisma } from '@prisma/client';
+import { getYearlyBriefing, AVAILABLE_YEARS } from '@/lib/data/yearly-briefings';
 
 export type OutlookFilter = {
   year?: number;
@@ -196,5 +197,125 @@ export async function getCompareStats(year1: number, year2: number) {
     themes_grew: themes_grew.sort((a,b) => b.delta - a.delta),
     themes_declined: themes_declined.sort((a,b) => a.delta - b.delta),
     institutional_changes: institutional_changes.slice(0, 50) // Limit to top 50 to avoid massive payload
+  };
+}
+
+// Types for Overview response
+type ConvictionGroupResult = {
+  convictionTier: string;
+  _count: { convictionTier: number };
+};
+
+export interface OverviewResponse {
+  year: number;
+  yearRange: number[];
+  briefing: {
+    subtitle: string;
+    narrative: string;
+  } | null;
+  topThemes: Array<{
+    theme: string;
+    count: number;
+  }>;
+  convictionIndex: number;
+  convictionLabel: "High Conviction" | "Moderate Consensus" | "Fragmented Views";
+  institutionCount: number;
+  prevYearInstitutionCount: number | null;
+  totalCalls: number;
+}
+
+export async function getYearOverview(year: number): Promise<OverviewResponse> {
+  // Parallel queries for performance
+  const [
+    totalCalls,
+    convictionRaw,
+    institutionsRaw,
+    prevYearInstitutionsRaw,
+    topThemesRaw,
+  ] = await Promise.all([
+    // Total calls for the year
+    prisma.outlookCall.count({ where: { year } }),
+
+    // Conviction tier distribution
+    prisma.outlookCall.groupBy({
+      by: ['convictionTier'],
+      where: { year },
+      _count: { convictionTier: true },
+    }),
+
+    // Distinct institutions for current year
+    prisma.outlookCall.groupBy({
+      by: ['institutionCanonical'],
+      where: { year },
+    }),
+
+    // Distinct institutions for previous year
+    prisma.outlookCall.groupBy({
+      by: ['institutionCanonical'],
+      where: { year: year - 1 },
+    }),
+
+    // Top themes
+    prisma.outlookCall.groupBy({
+      by: ['theme'],
+      where: { year },
+      _count: { theme: true },
+      orderBy: { _count: { theme: 'desc' } },
+      take: 5,
+    }),
+  ]);
+
+  // Cast types
+  const conviction = convictionRaw as ConvictionGroupResult[];
+
+  // Calculate conviction index (High=100, Medium=50, Low=0)
+  const convictionMap = new Map(
+    conviction.map(c => [c.convictionTier, Number(c._count.convictionTier)])
+  );
+  const highCount = convictionMap.get('high') || 0;
+  const mediumCount = convictionMap.get('medium') || 0;
+  const lowCount = convictionMap.get('low') || 0;
+  const total = highCount + mediumCount + lowCount;
+
+  const convictionIndex = total > 0
+    ? Math.round((highCount * 100 + mediumCount * 50 + lowCount * 0) / total)
+    : 0;
+
+  // Determine conviction label
+  let convictionLabel: OverviewResponse['convictionLabel'];
+  if (convictionIndex > 70) {
+    convictionLabel = "High Conviction";
+  } else if (convictionIndex >= 40) {
+    convictionLabel = "Moderate Consensus";
+  } else {
+    convictionLabel = "Fragmented Views";
+  }
+
+  // Get editorial briefing from constants
+  const briefing = getYearlyBriefing(year);
+  
+  // Format top themes
+  // Note: 'theme' field in prisma result might be different if group key is different?
+  // The query used by: ['theme'], so result will have 'theme'.
+  // However, earlier queries used 'themeCategory'. The plan says:
+  // "Use [NEW] and [DELETE]... Corrected Prisma Query for topThemes: groupBy by 'theme'"
+  // So assuming 'theme' is the correct field on OutlookCall model.
+  // We need to type cast properly if TS complains, but for now assuming it works as 'theme' is a field.
+  const topThemes = (topThemesRaw as unknown as Array<{ theme: string, _count: { theme: number } }>).map(t => ({
+    theme: t.theme,
+    count: Number(t._count.theme)
+  }));
+
+  // Build response
+  return {
+    year,
+    yearRange: AVAILABLE_YEARS,
+    briefing: briefing ? { subtitle: briefing.subtitle, narrative: briefing.narrative } : null,
+    topThemes,
+    convictionIndex,
+    convictionLabel,
+    institutionCount: institutionsRaw.length,
+    prevYearInstitutionCount: prevYearInstitutionsRaw.length > 0 ? prevYearInstitutionsRaw.length : null,
+    totalCalls,
   };
 }
