@@ -21,5 +21,46 @@ model OutlookCall {
   convictionTier       String  @map("conviction_tier") // high, medium, low
   wordCount            Int     @map("word_count") // Computed
 
+  // AI generation metadata
+  subThemeGenerated    Boolean   @default(false) @map("sub_theme_generated")
+  subThemeConfidence   Float?    @map("sub_theme_confidence")
+  sectionDescGenerated Boolean   @default(false) @map("section_desc_generated")
+  sectionDescConfidence Float?   @map("section_desc_confidence")
+  needsReview          Boolean   @default(false) @map("needs_review")
+  reviewedAt           DateTime? @map("reviewed_at")
+  generatedAt          DateTime? @map("generated_at")
+
   @@map("outlook_calls")
+}
+
+// Human review queue for low-confidence AI generations
+model ReviewQueue {
+  id             String    @id @default(cuid())
+  outlookCallId  String    @map("outlook_call_id")
+  field          String    // "subTheme" or "sectionDescription"
+  generatedValue String    @map("generated_value")
+  confidence     Float
+  status         String    @default("pending") // pending, approved, rejected, edited
+  reviewedBy     String?   @map("reviewed_by")
+  reviewedAt     DateTime? @map("reviewed_at")
+  finalValue     String?   @map("final_value")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@map("review_queue")
+  @@index([status])
+  @@index([outlookCallId])
+}
+
+// Track migration runs for resume capability
+model MigrationRun {
+  id              String    @id @default(cuid())
+  startedAt       DateTime  @default(now()) @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  totalRecords    Int       @map("total_records")
+  processedCount  Int       @default(0) @map("processed_count")
+  errorCount      Int       @default(0) @map("error_count")
+  lastProcessedId String?   @map("last_processed_id")
+  status          String    @default("running") // running, completed, failed, paused
+
+  @@map("migration_runs")
 }

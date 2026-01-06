@@ -43,6 +43,22 @@ export const QuerySchema = z.object({
   follow_up_questions: z.array(z.string()),
 });
 
+// AI Generation schemas for backfill migration
+export const SubThemeGenerationSchema = z.object({
+  subTheme: z.string().min(2).max(100),
+  confidence: z.number().min(0).max(1),
+  reasoning: z.string(),
+});
+
+export const SectionDescriptionGenerationSchema = z.object({
+  sectionDescription: z.string().min(10).max(500),
+  confidence: z.number().min(0).max(1),
+  keyPoints: z.array(z.string()),
+});
+
+export type SubThemeGeneration = z.infer<typeof SubThemeGenerationSchema>;
+export type SectionDescriptionGeneration = z.infer<typeof SectionDescriptionGenerationSchema>;
+
 /**
  * Helper to parse JSON from AI response, handling markdown code blocks if present.
  */
