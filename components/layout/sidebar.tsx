@@ -21,12 +21,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Cloud,
 } from "lucide-react";
 
 const navigation = [
   { name: "Home", href: "/", icon: LayoutDashboard },
   { name: "Executive", href: "/overview", icon: Briefcase },
   { name: "Snapshot", href: "/snapshot", icon: PieChart },
+  { name: "Word Cloud", href: "/wordcloud", icon: Cloud },
   { name: "Delta", href: "/delta", icon: TrendingUp },
   { name: "Historical", href: "/historical", icon: History },
   { name: "Narrative", href: "/narrative", icon: Sparkles },
