@@ -229,7 +229,7 @@ export default async function Home() {
                     <div className="flex items-center gap-4">
                       <div className="text-right hidden sm:block">
                         <div className="text-sm font-medium">{yearData.callCount.toLocaleString()}</div>
-                        <div className="text-xs text-muted-foreground">calls</div>
+                        <div className="text-xs text-muted-foreground">views</div>
                       </div>
                       <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
