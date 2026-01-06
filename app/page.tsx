@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
   ArrowRight,
-  ArrowDown,
   GitCompare,
   Calendar,
   Building2,
@@ -14,23 +13,23 @@ import {
   Layers
 } from "lucide-react";
 
-import { getHomeStats } from "@/lib/db/queries";
-import { YEARLY_BRIEFINGS } from "@/lib/data/yearly-briefings";
+import { getHomeStats, getBaseCasesByYear } from "@/lib/db/queries";
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const stats = await getHomeStats();
+  const [stats, baseCases] = await Promise.all([
+    getHomeStats(),
+    getBaseCasesByYear(),
+  ]);
 
-  // Get year data for timeline
-  const yearsData = Object.entries(YEARLY_BRIEFINGS)
-    .sort(([a], [b]) => Number(b) - Number(a))
-    .map(([year, briefing]) => ({
-      year: Number(year),
-      subtitle: briefing.subtitle,
-      narrative: briefing.narrative,
-      callCount: stats.years.find(y => y.year === Number(year))?.count || 0
-    }));
+  // Merge base cases with year stats
+  const yearsData = baseCases.map(bc => ({
+    year: bc.year,
+    baseCase: bc.baseCase,
+    description: bc.description,
+    callCount: stats.years.find(y => y.year === bc.year)?.count || 0,
+  }));
 
   return (
     <div className="space-y-12 pb-12">
@@ -126,155 +125,72 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Data Source Section */}
+      {/* Methodology and Data Source Section */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <div className="h-8 w-1 bg-primary rounded-full" />
-          <h2 className="text-2xl font-bold tracking-tight">The Data Source</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Methodology and Data Source</h2>
         </div>
 
         <Card className="bg-muted/20">
-          <CardContent className="pt-6 space-y-4">
+          <CardContent className="pt-6">
             <p className="text-muted-foreground leading-relaxed">
-              Bloomberg&apos;s annual <span className="font-medium text-foreground">&quot;(Almost) Everything Wall Street Expects&quot;</span> compilation
-              aggregates investment outlooks from the world&apos;s largest financial institutions.
+              Bloomberg News&apos; annual <span className="font-medium text-foreground">&quot;Here&apos;s (Almost) Everything Wall Street Expects in [YEAR]&quot;</span> series,
+              edited by Sam Potter (Senior Markets Editor), serves as the primary data source. Views and research are sampled from content
+              shared with media or publicly accessible online, with multi-asset and macro teams preferred for broad market coverage.
+              Maximum 15 calls per institution. Key views selected at Bloomberg&apos;s discretion.
             </p>
-
-            <div className="bg-background/50 rounded-lg p-4 border">
-              <p className="text-sm font-medium mb-3">This is not a prediction model. It&apos;s a historical record of what institutional consensus looked like at each point in time.</p>
-              <ul className="text-sm text-muted-foreground space-y-2">
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1">•</span>
-                  <span><strong className="text-foreground">67 institutions</strong> — Goldman Sachs, BlackRock, JPMorgan, Morgan Stanley, Vanguard, and more</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1">•</span>
-                  <span><strong className="text-foreground">~700-900 outlook calls</strong> per year, curated by Bloomberg News</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1">•</span>
-                  <span><strong className="text-foreground">Editorial conviction ranking</strong> — HIGH, MEDIUM, LOW based on Bloomberg&apos;s assessment</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1">•</span>
-                  <span><strong className="text-foreground">8 years of coverage</strong> — 2019 through 2026, capturing multiple market regimes</span>
-                </li>
-              </ul>
-            </div>
           </CardContent>
         </Card>
       </section>
 
-      {/* Analytical Framework Section */}
+      {/* How Consensus is Built Section */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <div className="h-8 w-1 bg-primary rounded-full" />
           <h2 className="text-2xl font-bold tracking-tight">How Consensus is Built</h2>
         </div>
 
-        <div className="space-y-4">
-          {/* Pipeline Steps */}
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Step 1 */}
-            <Card className="relative">
-              <div className="absolute -top-3 left-4 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
-                STEP 1
-              </div>
-              <CardHeader className="pt-6">
-                <CardTitle className="text-lg">Theme Classification</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Every outlook call is tagged to one of <strong className="text-foreground">83 investment themes</strong> —
-                AI, Growth, Inflation, Stocks, China, Geopolitics, and more.
-              </CardContent>
-            </Card>
-
-            {/* Step 2 */}
-            <Card className="relative">
-              <div className="absolute -top-3 left-4 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
-                STEP 2
-              </div>
-              <CardHeader className="pt-6">
-                <CardTitle className="text-lg">Taxonomy Categorization</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Themes organized into <strong className="text-foreground">6 strategic categories</strong> for structured analysis.
-              </CardContent>
-            </Card>
-
-            {/* Step 3 */}
-            <Card className="relative">
-              <div className="absolute -top-3 left-4 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
-                STEP 3
-              </div>
-              <CardHeader className="pt-6">
-                <CardTitle className="text-lg">Conviction Scoring</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Each call rated <strong className="text-foreground">HIGH / MEDIUM / LOW</strong> based on Bloomberg editorial judgment.
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Categories Grid */}
-          <Card className="bg-muted/20">
-            <CardHeader>
-              <CardTitle className="text-base">The 6 Strategic Categories</CardTitle>
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* Step 1 */}
+          <Card className="relative">
+            <div className="absolute -top-3 left-4 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
+              STEP 1
+            </div>
+            <CardHeader className="pt-6">
+              <CardTitle className="text-lg">Base Case Identification</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                <div className="p-3 bg-background rounded-lg border text-center">
-                  <div className="font-semibold text-sm">Base Case</div>
-                  <div className="text-xs text-muted-foreground mt-1">The consensus scenario</div>
-                </div>
-                <div className="p-3 bg-background rounded-lg border text-center">
-                  <div className="font-semibold text-sm">Topics</div>
-                  <div className="text-xs text-muted-foreground mt-1">Macro drivers</div>
-                </div>
-                <div className="p-3 bg-background rounded-lg border text-center">
-                  <div className="font-semibold text-sm">Thematic</div>
-                  <div className="text-xs text-muted-foreground mt-1">Secular trends</div>
-                </div>
-                <div className="p-3 bg-background rounded-lg border text-center">
-                  <div className="font-semibold text-sm">Geographies</div>
-                  <div className="text-xs text-muted-foreground mt-1">Regional focus</div>
-                </div>
-                <div className="p-3 bg-background rounded-lg border text-center">
-                  <div className="font-semibold text-sm">Asset Classes</div>
-                  <div className="text-xs text-muted-foreground mt-1">Allocation signals</div>
-                </div>
-                <div className="p-3 bg-background rounded-lg border text-center">
-                  <div className="font-semibold text-sm">Risks</div>
-                  <div className="text-xs text-muted-foreground mt-1">What could go wrong</div>
-                </div>
-              </div>
+            <CardContent className="text-sm text-muted-foreground">
+              Bloomberg editorial team identifies the <strong className="text-foreground">central scenario</strong> that
+              represents the consensus view across institutions based on editorial judgment.
             </CardContent>
           </Card>
 
-          {/* Output */}
-          <div className="flex justify-center">
-            <ArrowDown className="h-6 w-6 text-muted-foreground" />
-          </div>
+          {/* Step 2 */}
+          <Card className="relative">
+            <div className="absolute -top-3 left-4 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
+              STEP 2
+            </div>
+            <CardHeader className="pt-6">
+              <CardTitle className="text-lg">Thematic Ordering</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              Themes are sorted by <strong className="text-foreground">editorial relevance</strong> into thematic buckets.
+              Remaining calls organized by standard asset class categories (equities, rates, FX, commodities, alternatives).
+            </CardContent>
+          </Card>
 
-          <Card className="border-primary/50 bg-primary/5">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <div className="text-lg font-semibold">Consensus Metrics</div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <div className="p-3">
-                    <div className="font-medium">Conviction Index</div>
-                    <div className="text-sm text-muted-foreground">0-100 score measuring Wall Street alignment</div>
-                  </div>
-                  <div className="p-3">
-                    <div className="font-medium">Theme Concentration</div>
-                    <div className="text-sm text-muted-foreground">Where institutional attention clusters</div>
-                  </div>
-                  <div className="p-3">
-                    <div className="font-medium">Year-over-Year Delta</div>
-                    <div className="text-sm text-muted-foreground">What&apos;s emerging, fading, or intensifying</div>
-                  </div>
-                </div>
-              </div>
+          {/* Step 3 */}
+          <Card className="relative">
+            <div className="absolute -top-3 left-4 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
+              STEP 3
+            </div>
+            <CardHeader className="pt-6">
+              <CardTitle className="text-lg">Conviction Ranking</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              Within each category, calls ordered by <strong className="text-foreground">apparent level of conviction</strong> as
+              judged by Bloomberg News. Similar conviction levels sorted alphabetically by institution.
             </CardContent>
           </Card>
         </div>
@@ -284,11 +200,11 @@ export default async function Home() {
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <div className="h-8 w-1 bg-primary rounded-full" />
-          <h2 className="text-2xl font-bold tracking-tight">Coverage Timeline</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Eight Years of Market Narratives Captured</h2>
         </div>
         <p className="text-muted-foreground">
-          Eight years of market regimes captured — from late-cycle jitters through pandemic shock,
-          inflation crisis, and the AI revolution.
+          From late-cycle jitters through pandemic shock, inflation crisis, and the AI revolution —
+          each year&apos;s Bloomberg-identified Base Case scenario and consensus theme.
         </p>
 
         <div className="grid gap-3">
@@ -306,10 +222,10 @@ export default async function Home() {
                       <div className="hidden sm:block h-8 w-px bg-border" />
                       <div>
                         <div className="font-medium group-hover:text-primary transition-colors">
-                          {yearData.subtitle}
+                          {yearData.baseCase}
                         </div>
                         <div className="text-sm text-muted-foreground hidden md:block">
-                          {yearData.narrative}
+                          {yearData.description}
                         </div>
                       </div>
                     </div>
@@ -334,6 +250,10 @@ export default async function Home() {
           <div className="h-8 w-1 bg-primary rounded-full" />
           <h2 className="text-2xl font-bold tracking-tight">Explore the Data</h2>
         </div>
+        <p className="text-muted-foreground">
+          Two analytical modules for navigating eight years of Wall Street consensus — drill into any
+          single year or compare how narratives evolved across market cycles.
+        </p>
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Snapshot Module */}
@@ -388,6 +308,41 @@ export default async function Home() {
             </Card>
           </Link>
         </div>
+      </section>
+
+      {/* Key Assumptions & Limitations Section */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-1 bg-amber-500 rounded-full" />
+          <h2 className="text-2xl font-bold tracking-tight">Key Assumptions &amp; Limitations</h2>
+        </div>
+
+        <Card className="bg-amber-500/5 border-amber-500/20">
+          <CardContent className="pt-6">
+            <ul className="text-sm text-muted-foreground space-y-3">
+              <li className="flex items-start gap-3">
+                <span className="text-amber-500 font-bold">1</span>
+                <span><strong className="text-foreground">Qualitative aggregation:</strong> This is journalism-driven synthesis, not quantitative modeling. No weighting by historical accuracy or AUM.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-amber-500 font-bold">2</span>
+                <span><strong className="text-foreground">Editorial discretion:</strong> Inclusion, presentation, conviction ranking, and base case identification are entirely at Bloomberg News&apos; discretion.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-amber-500 font-bold">3</span>
+                <span><strong className="text-foreground">Marketing origin:</strong> Source content originated as marketing material with standard industry disclaimers.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-amber-500 font-bold">4</span>
+                <span><strong className="text-foreground">Non-exhaustive:</strong> The list is explicitly not comprehensive. Some institutions may not appear because research was unavailable or deemed unsuitable.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-amber-500 font-bold">5</span>
+                <span><strong className="text-foreground">Partial representation:</strong> Displayed views may not represent full institutional positioning across departments.</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

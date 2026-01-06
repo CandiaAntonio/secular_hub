@@ -196,6 +196,26 @@ export async function getHomeStats() {
   };
 }
 
+// Get Base Case for each year (from Bloomberg's original data)
+export async function getBaseCasesByYear() {
+  const baseCases = await prisma.outlookCall.findMany({
+    where: { theme: 'BASE CASE' },
+    select: {
+      year: true,
+      subTheme: true,
+      sectionDescription: true,
+    },
+    distinct: ['year'],
+    orderBy: { year: 'desc' },
+  });
+
+  return baseCases.map(bc => ({
+    year: bc.year,
+    baseCase: bc.subTheme || 'Market Outlook',
+    description: bc.sectionDescription || '',
+  }));
+}
+
 export async function getCompareStats(year1: number, year2: number) {
   const [y1ThemesRaw, y2ThemesRaw, y1InstRaw, y2InstRaw] = await Promise.all([
      prisma.outlookCall.groupBy({
