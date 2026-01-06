@@ -335,6 +335,99 @@ export interface OverviewResponse {
   totalCalls: number;
 }
 
+// Theme Rankings for Bump Chart
+export interface ThemeRanking {
+  year: number;
+  theme: string;
+  rank: number;
+  count: number;
+  type: 'MACRO' | 'THEMATIC';
+  category: string;
+}
+
+export interface BumpChartData {
+  rankings: ThemeRanking[];
+  years: number[];
+  themes: string[];
+  baseCases: { year: number; subtitle: string }[];
+}
+
+export async function getThemeRankings(startYear: number = 2019, endYear: number = 2026, topN: number = 10): Promise<BumpChartData> {
+  const macroCategories = ['Macro Outlook', 'Monetary Policy', 'Inflation & Prices', 'Fiscal Policy'];
+  const thematicCategory = 'Thematic';
+  const years = [];
+  for (let y = startYear; y <= endYear; y++) years.push(y);
+
+  const rankings: ThemeRanking[] = [];
+  const allThemes = new Set<string>();
+
+  for (const year of years) {
+    // Get all calls for this year in macro/thematic categories, ordered by Bloomberg's rank
+    const calls = await prisma.outlookCall.findMany({
+      where: {
+        year,
+        themeCategory: { in: [...macroCategories, thematicCategory] }
+      },
+      select: { theme: true, themeCategory: true, rank: true },
+      orderBy: { rank: 'asc' }
+    });
+
+    // Get unique themes preserving Bloomberg's rank order
+    const seen = new Set<string>();
+    const orderedThemes: { theme: string; category: string; type: 'MACRO' | 'THEMATIC' }[] = [];
+
+    calls.forEach(c => {
+      if (!seen.has(c.theme)) {
+        seen.add(c.theme);
+        orderedThemes.push({
+          theme: c.theme,
+          category: c.themeCategory,
+          type: macroCategories.includes(c.themeCategory) ? 'MACRO' : 'THEMATIC'
+        });
+      }
+    });
+
+    // Count calls per theme
+    const counts: Record<string, number> = {};
+    calls.forEach(c => { counts[c.theme] = (counts[c.theme] || 0) + 1; });
+
+    // Build rankings (BASE CASE is always rank 0)
+    let position = 0;
+    orderedThemes.slice(0, topN + 1).forEach(t => {
+      const rank = t.theme === 'BASE CASE' ? 0 : ++position;
+      rankings.push({
+        year,
+        theme: t.theme,
+        rank,
+        count: counts[t.theme],
+        type: t.type,
+        category: t.category
+      });
+      allThemes.add(t.theme);
+    });
+  }
+
+  // Get base case subtitles
+  const baseCasesRaw = await prisma.outlookCall.findMany({
+    where: { theme: 'BASE CASE' },
+    select: { year: true, subTheme: true },
+    distinct: ['year'],
+    orderBy: { year: 'asc' }
+  });
+
+  const baseCases = baseCasesRaw.map(bc => ({
+    year: bc.year,
+    subtitle: bc.subTheme || 'Market Outlook'
+  }));
+
+  return {
+    rankings,
+    years,
+    themes: Array.from(allThemes),
+    baseCases
+  };
+}
+
 export async function getYearOverview(year: number): Promise<OverviewResponse> {
   // Parallel queries for performance
   const [
