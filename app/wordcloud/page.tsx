@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { WordCloud, WordData } from "@/components/charts/word-cloud";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -12,30 +12,35 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Cloud, FileText, Calendar, TrendingUp } from "lucide-react";
+import { Cloud, FileText, Calendar, TrendingUp, Building2 } from "lucide-react";
 
 interface WordCloudResponse {
   year: number | 'all';
   wordCount: number;
   totalDocuments: number;
+  uniqueInstitutions: number;
   words: WordData[];
   availableYears: number[];
 }
 
 export default function WordCloudPage() {
   const [selectedYear, setSelectedYear] = useState<string>("2026");
+  const [wordLimit, setWordLimit] = useState<string>("100");
   const [data, setData] = useState<WordCloudResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
 
-  // Fetch data when year changes
-  const fetchData = useCallback(async (year: string) => {
+  // Fetch data when year or limit changes
+  const fetchData = useCallback(async (year: string, limit: string) => {
     setLoading(true);
     setError(null);
     try {
-      const query = year === "all" ? "" : `?year=${year}`;
+      const params = new URLSearchParams();
+      if (year !== "all") params.set("year", year);
+      params.set("limit", limit);
+      const query = params.toString() ? `?${params.toString()}` : "";
       const res = await fetch(`/api/stats/wordcloud${query}`);
       if (!res.ok) throw new Error("Failed to fetch word cloud data");
       const json = await res.json();
@@ -48,8 +53,8 @@ export default function WordCloudPage() {
   }, []);
 
   useEffect(() => {
-    fetchData(selectedYear);
-  }, [selectedYear, fetchData]);
+    fetchData(selectedYear, wordLimit);
+  }, [selectedYear, wordLimit, fetchData]);
 
   // Responsive dimensions
   useEffect(() => {
@@ -57,7 +62,7 @@ export default function WordCloudPage() {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         setDimensions({
-          width: Math.max(rect.width - 48, 400), // padding offset
+          width: Math.max(rect.width - 48, 400),
           height: Math.max(Math.min(rect.width * 0.6, 600), 400),
         });
       }
@@ -69,12 +74,7 @@ export default function WordCloudPage() {
   }, []);
 
   const handleWordClick = (word: string) => {
-    // Could navigate to explorer with this word as search
     console.log("Clicked word:", word);
-  };
-
-  const handleYearChange = (value: string) => {
-    setSelectedYear(value);
   };
 
   return (
@@ -87,13 +87,14 @@ export default function WordCloudPage() {
             Word Cloud Analysis
           </h1>
           <p className="text-muted-foreground mt-1">
-            Visualize the most frequent terms in Wall Street&apos;s consensus narratives
+            Visualize the most frequent terms in Wall Street&apos;s consensus narratives.
+            <span className="hidden sm:inline"> Word size indicates frequency.</span>
           </p>
         </div>
 
         {/* Year Selector */}
-        <Select value={selectedYear} onValueChange={handleYearChange}>
-          <SelectTrigger className="w-[180px]">
+        <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <SelectTrigger className="w-[150px]">
             <Calendar className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Select year" />
           </SelectTrigger>
@@ -110,36 +111,53 @@ export default function WordCloudPage() {
 
       {/* Stats Row */}
       <div className="grid gap-4 md:grid-cols-3">
+        {/* Unique Words - con selector */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unique Words</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-2xl font-bold">{data?.wordCount || 0}</div>
-            )}
-            <p className="text-xs text-muted-foreground">distinct terms analyzed</p>
+            <div className="flex items-center justify-between">
+              {loading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className="text-2xl font-bold">{data?.wordCount || 0}</div>
+              )}
+              <Select value={wordLimit} onValueChange={setWordLimit}>
+                <SelectTrigger className="w-[100px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="50">50 words</SelectItem>
+                  <SelectItem value="100">100 words</SelectItem>
+                  <SelectItem value="150">150 words</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">distinct terms analyzed</p>
           </CardContent>
         </Card>
 
+        {/* Outlooks */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Documents</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Outlooks</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
-              <div className="text-2xl font-bold">{data?.totalDocuments || 0}</div>
+              <div className="text-2xl font-bold">{data?.uniqueInstitutions || 0}</div>
             )}
-            <p className="text-xs text-muted-foreground">outlook calls processed</p>
+            <p className="text-xs text-muted-foreground">
+              {data?.totalDocuments || 0} views processed
+            </p>
           </CardContent>
         </Card>
 
+        {/* Top Term */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Top Term</CardTitle>
@@ -160,20 +178,9 @@ export default function WordCloudPage() {
         </Card>
       </div>
 
-      {/* Word Cloud */}
+      {/* Word Cloud - sin card header, directo */}
       <Card className="relative">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Consensus Vocabulary
-            {selectedYear !== "all" && (
-              <Badge variant="secondary">{selectedYear}</Badge>
-            )}
-          </CardTitle>
-          <CardDescription>
-            Word size indicates frequency. Click a word to explore related calls.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center items-center min-h-[500px]">
+        <CardContent className="flex justify-center items-center min-h-[500px] pt-6">
           {loading ? (
             <div className="flex flex-col items-center gap-4">
               <Skeleton className="h-[400px] w-full max-w-[700px] rounded-lg" />
@@ -200,15 +207,12 @@ export default function WordCloudPage() {
       {/* Top Words Table */}
       {!loading && data?.words && data.words.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle>Top 20 Terms</CardTitle>
-            <CardDescription>
-              Most frequent words in {selectedYear === "all" ? "all years" : selectedYear} outlook calls
-            </CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Top 20 Terms</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
-              {data.words.slice(0, 20).map((word, i) => (
+              {data.words.slice(0, 20).map((word) => (
                 <div
                   key={word.text}
                   className="flex items-center justify-between p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors cursor-pointer"

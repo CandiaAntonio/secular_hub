@@ -29,15 +29,21 @@ const STOPWORDS = new Set([
 // Minimum word length to include
 const MIN_WORD_LENGTH = 3;
 
-// Maximum number of words to return
-const MAX_WORDS = 150;
+// Default and allowed word limits
+const DEFAULT_LIMIT = 100;
+const ALLOWED_LIMITS = [50, 100, 150];
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const yearParam = searchParams.get('year');
+  const limitParam = searchParams.get('limit');
 
   // Parse year filter
   const year = yearParam ? parseInt(yearParam, 10) : null;
+
+  // Parse limit (only allow 50 or 100)
+  const requestedLimit = limitParam ? parseInt(limitParam, 10) : DEFAULT_LIMIT;
+  const limit = ALLOWED_LIMITS.includes(requestedLimit) ? requestedLimit : DEFAULT_LIMIT;
 
   // Build query filter
   const where = year ? { year } : {};
@@ -73,21 +79,30 @@ export async function GET(request: Request) {
   // Sort by frequency and take top N
   const sortedWords = Array.from(wordCounts.entries())
     .sort((a, b) => b[1] - a[1])
-    .slice(0, MAX_WORDS)
+    .slice(0, limit)
     .map(([text, value]) => ({ text, value }));
 
-  // Get available years for the selector
-  const yearsRaw = await prisma.outlookCall.groupBy({
-    by: ['year'],
-    orderBy: { year: 'desc' },
-  });
+  // Get available years and unique institutions count
+  const [yearsRaw, institutionsRaw] = await Promise.all([
+    prisma.outlookCall.groupBy({
+      by: ['year'],
+      orderBy: { year: 'desc' },
+    }),
+    prisma.outlookCall.groupBy({
+      by: ['institutionCanonical'],
+      where,
+    }),
+  ]);
 
   const availableYears = yearsRaw.map(y => y.year);
+  const uniqueInstitutions = institutionsRaw.length;
 
   return NextResponse.json({
     year: year || 'all',
+    limit,
     wordCount: sortedWords.length,
     totalDocuments: calls.length,
+    uniqueInstitutions,
     words: sortedWords,
     availableYears,
   });
