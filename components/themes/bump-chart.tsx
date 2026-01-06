@@ -1,19 +1,23 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ThemeRanking } from '@/lib/db/queries';
 
-// Color scheme: MACRO = Blue tones, THEMATIC = Amber/Orange tones
-const MACRO_COLORS: Record<string, string> = {
-  'BASE CASE': '#64748b',      // slate-500
+// Themes to exclude from the bump chart (RISKS will be in separate section)
+const EXCLUDED_THEMES = ['RISKS'];
+
+// Color scheme: unique color per theme
+const THEME_COLORS: Record<string, string> = {
+  // Special
+  'BASE CASE': '#475569',      // slate-600
+  // Macro themes
   'GROWTH': '#22c55e',         // green-500
   'RECESSION': '#ef4444',      // red-500
   'MONETARY POLICY': '#8b5cf6', // violet-500
   'INFLATION': '#f97316',      // orange-500
   'FISCAL': '#6366f1',         // indigo-500
-  'RISKS': '#71717a',          // zinc-500
   'VOLATILITY': '#a855f7',     // purple-500
   'SLOWDOWN': '#eab308',       // yellow-500
   'RATE CUTS': '#06b6d4',      // cyan-500
@@ -25,9 +29,7 @@ const MACRO_COLORS: Record<string, string> = {
   'DISINFLATION': '#fb923c',   // orange-400
   'QUANTITATIVE TIGHTENING': '#1d4ed8', // blue-700
   'WAGES': '#f59e0b',          // amber-500
-};
-
-const THEMATIC_COLORS: Record<string, string> = {
+  // Thematic themes
   'TRADE': '#c026d3',          // fuchsia-600
   'POLITICS': '#db2777',       // pink-600
   'ELECTIONS': '#e11d48',      // rose-600
@@ -52,6 +54,23 @@ interface BumpChartProps {
   className?: string;
 }
 
+// Abbreviate base case subtitle to fit in tile
+function abbreviateSubtitle(subtitle: string): string {
+  // Common abbreviations
+  const abbrevMap: Record<string, string> = {
+    "The Bull Market's Last Hurrah": "Bull's Last Hurrah",
+    "The Great Moderation of Returns": "Great Moderation",
+    "Vaccine-Driven Global Revival": "Vaccine Revival",
+    "Inflationary Pressures & Policy Shifts": "Inflation & Policy",
+    "Bracing for the Anticipated Recession": "Recession Bracing",
+    "Soft-ish Landing and the Policy Pivot": "Soft Landing",
+    "America First (Again)": "America First",
+    "Capex + Policy = Growth": "Capex + Policy",
+  };
+
+  return abbrevMap[subtitle] || (subtitle.length > 18 ? subtitle.slice(0, 16) + '..' : subtitle);
+}
+
 export function BumpChart({
   rankings,
   years,
@@ -61,33 +80,59 @@ export function BumpChart({
   className
 }: BumpChartProps) {
   const [hoveredTheme, setHoveredTheme] = useState<string | null>(null);
+  const [hoveredBaseCase, setHoveredBaseCase] = useState<number | null>(null);
 
-  // Build grid data: for each year, get theme at each rank position
-  const { gridData, allThemes } = useMemo(() => {
-    const gridData: Record<number, Record<number, ThemeRanking | null>> = {};
-    const allThemes = new Set<string>();
+  // Filter out excluded themes and recalculate ranks (no gaps)
+  const filteredRankings = useMemo(() => {
+    const result: ThemeRanking[] = [];
 
     years.forEach(year => {
-      gridData[year] = {};
-      const yearRankings = rankings.filter(r => r.year === year);
-      yearRankings.forEach(r => {
-        gridData[year][r.rank] = r;
-        allThemes.add(r.theme);
+      // Get all rankings for this year, excluding RISKS
+      const yearRankings = rankings
+        .filter(r => r.year === year && !EXCLUDED_THEMES.includes(r.theme))
+        .sort((a, b) => a.rank - b.rank);
+
+      // Reassign ranks: BASE CASE stays at 0, others get consecutive ranks
+      yearRankings.forEach((r, index) => {
+        if (r.theme === 'BASE CASE') {
+          result.push({ ...r, rank: 0 });
+        } else {
+          // Find position after BASE CASE
+          const baseCaseIndex = yearRankings.findIndex(x => x.theme === 'BASE CASE');
+          const adjustedIndex = index > baseCaseIndex ? index : index + 1;
+          result.push({ ...r, rank: adjustedIndex });
+        }
       });
     });
 
-    return { gridData, allThemes: Array.from(allThemes) };
+    return result;
   }, [rankings, years]);
 
-  // Get color for a theme
-  const getThemeColor = (theme: string, type: 'MACRO' | 'THEMATIC'): string => {
-    if (type === 'MACRO') {
-      return MACRO_COLORS[theme] || '#3b82f6';
-    }
-    return THEMATIC_COLORS[theme] || '#f59e0b';
+  // Build grid data
+  const { gridData, allThemes, maxRankPerYear } = useMemo(() => {
+    const gridData: Record<number, Record<number, ThemeRanking | null>> = {};
+    const allThemes = new Set<string>();
+    const maxRankPerYear: Record<number, number> = {};
+
+    years.forEach(year => {
+      gridData[year] = {};
+      const yearRankings = filteredRankings.filter(r => r.year === year);
+      let maxRank = 0;
+      yearRankings.forEach(r => {
+        gridData[year][r.rank] = r;
+        allThemes.add(r.theme);
+        if (r.rank > maxRank) maxRank = r.rank;
+      });
+      maxRankPerYear[year] = maxRank;
+    });
+
+    return { gridData, allThemes: Array.from(allThemes), maxRankPerYear };
+  }, [filteredRankings, years]);
+
+  const getThemeColor = (theme: string): string => {
+    return THEME_COLORS[theme] || '#64748b';
   };
 
-  // Find connections between years for a theme
   const getThemeConnections = (theme: string) => {
     const connections: { fromYear: number; fromRank: number; toYear: number; toRank: number }[] = [];
 
@@ -95,8 +140,8 @@ export function BumpChart({
       const year1 = years[i];
       const year2 = years[i + 1];
 
-      const r1 = rankings.find(r => r.year === year1 && r.theme === theme);
-      const r2 = rankings.find(r => r.year === year2 && r.theme === theme);
+      const r1 = filteredRankings.find(r => r.year === year1 && r.theme === theme);
+      const r2 = filteredRankings.find(r => r.year === year2 && r.theme === theme);
 
       if (r1 && r2) {
         connections.push({
@@ -111,79 +156,47 @@ export function BumpChart({
     return connections;
   };
 
-  const maxRank = 10;
-  const cellWidth = 120;
-  const cellHeight = 44;
-  const headerHeight = 60;
-  const rankLabelWidth = 50;
+  // Calculate max rank across all years
+  const maxRank = Math.max(...Object.values(maxRankPerYear), 10);
+
+  const cellWidth = 142;
+  const cellHeight = 54;
+  const headerHeight = 40;
+  const rankLabelWidth = 85;
 
   const svgWidth = rankLabelWidth + years.length * cellWidth;
-  const svgHeight = headerHeight + (maxRank + 1) * cellHeight + 40;
+  const svgHeight = headerHeight + (maxRank + 1) * cellHeight + 10;
 
   const getX = (yearIndex: number) => rankLabelWidth + yearIndex * cellWidth + cellWidth / 2;
   const getY = (rank: number) => headerHeight + rank * cellHeight + cellHeight / 2;
 
   return (
     <Card className={cn("flex flex-col overflow-hidden", className)}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg font-medium">Theme Rankings Over Time</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Bloomberg editorial ranking by relevance (0 = Base Case anchor)
-            </p>
-          </div>
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-blue-500"></span>
-              <span className="text-muted-foreground">Macro</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-amber-500"></span>
-              <span className="text-muted-foreground">Thematic</span>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-x-auto pb-4">
+      <CardContent className="flex-1 overflow-x-auto py-3 px-2">
         <svg width={svgWidth} height={svgHeight} className="min-w-full">
-          {/* Header row with years and base cases */}
-          {years.map((year, i) => {
-            const bc = baseCases.find(b => b.year === year);
-            return (
-              <g key={year}>
-                <text
-                  x={getX(i)}
-                  y={20}
-                  textAnchor="middle"
-                  className="fill-foreground font-bold text-sm"
-                >
-                  {year}
-                </text>
-                {bc && (
-                  <text
-                    x={getX(i)}
-                    y={38}
-                    textAnchor="middle"
-                    className="fill-muted-foreground text-[10px]"
-                  >
-                    {bc.subtitle.length > 16 ? bc.subtitle.slice(0, 16) + '...' : bc.subtitle}
-                  </text>
-                )}
-              </g>
-            );
-          })}
+          {/* Header row with years */}
+          {years.map((year, i) => (
+            <text
+              key={year}
+              x={getX(i)}
+              y={22}
+              textAnchor="middle"
+              className="fill-foreground font-bold text-sm"
+            >
+              {year}
+            </text>
+          ))}
 
           {/* Rank labels */}
           {Array.from({ length: maxRank + 1 }, (_, rank) => (
             <text
               key={rank}
-              x={rankLabelWidth - 10}
+              x={rankLabelWidth - 8}
               y={getY(rank) + 4}
               textAnchor="end"
-              className="fill-muted-foreground text-xs"
+              className="fill-muted-foreground text-xs font-medium"
             >
-              {rank === 0 ? 'BASE' : `#${rank}`}
+              {rank === 0 ? 'BASE CASE' : rank}
             </text>
           ))}
 
@@ -193,21 +206,21 @@ export function BumpChart({
               key={rank}
               x1={rankLabelWidth}
               y1={getY(rank)}
-              x2={svgWidth - 10}
+              x2={svgWidth - 5}
               y2={getY(rank)}
               stroke="currentColor"
-              strokeOpacity={0.1}
+              strokeOpacity={rank === 0 ? 0.12 : 0.05}
               strokeDasharray={rank === 0 ? "none" : "2,2"}
             />
           ))}
 
-          {/* Connection lines for all themes */}
+          {/* Connection lines (skip BASE CASE - always flat) */}
           {allThemes.map(theme => {
+            if (theme === 'BASE CASE') return null;
             const connections = getThemeConnections(theme);
-            const themeData = rankings.find(r => r.theme === theme);
-            if (!themeData || connections.length === 0) return null;
+            if (connections.length === 0) return null;
 
-            const color = getThemeColor(theme, themeData.type);
+            const color = getThemeColor(theme);
             const isHighlighted = selectedTheme === theme || hoveredTheme === theme;
             const isDimmed = (selectedTheme || hoveredTheme) && !isHighlighted;
 
@@ -218,8 +231,6 @@ export function BumpChart({
                   const y1 = getY(conn.fromRank);
                   const x2 = getX(years.indexOf(conn.toYear));
                   const y2 = getY(conn.toRank);
-
-                  // Create curved path
                   const midX = (x1 + x2) / 2;
 
                   return (
@@ -229,7 +240,7 @@ export function BumpChart({
                       fill="none"
                       stroke={color}
                       strokeWidth={isHighlighted ? 4 : 2}
-                      strokeOpacity={isDimmed ? 0.15 : 0.7}
+                      strokeOpacity={isDimmed ? 0.08 : 0.5}
                       className="transition-all duration-200"
                     />
                   );
@@ -245,21 +256,33 @@ export function BumpChart({
                 const ranking = gridData[year]?.[rank];
                 if (!ranking) return null;
 
-                const color = getThemeColor(ranking.theme, ranking.type);
+                const color = getThemeColor(ranking.theme);
                 const isHighlighted = selectedTheme === ranking.theme || hoveredTheme === ranking.theme;
                 const isDimmed = (selectedTheme || hoveredTheme) && !isHighlighted;
+                const isBaseCase = ranking.theme === 'BASE CASE';
+                const isBaseCaseHovered = isBaseCase && hoveredBaseCase === year;
 
                 const x = getX(yearIndex);
                 const y = getY(rank);
-                const boxWidth = cellWidth - 12;
-                const boxHeight = cellHeight - 8;
+                const boxWidth = cellWidth - 6;
+                const boxHeight = cellHeight - 4;
+
+                // Get base case subtitle for this year
+                const bc = baseCases.find(b => b.year === year);
+                const baseCaseText = isBaseCase && bc ? abbreviateSubtitle(bc.subtitle) : ranking.theme;
 
                 return (
                   <g
                     key={`${year}-${rank}`}
                     className="cursor-pointer"
-                    onMouseEnter={() => setHoveredTheme(ranking.theme)}
-                    onMouseLeave={() => setHoveredTheme(null)}
+                    onMouseEnter={() => {
+                      setHoveredTheme(ranking.theme);
+                      if (isBaseCase) setHoveredBaseCase(year);
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredTheme(null);
+                      setHoveredBaseCase(null);
+                    }}
                     onClick={() => onThemeSelect?.(selectedTheme === ranking.theme ? null : ranking.theme)}
                   >
                     <rect
@@ -269,7 +292,7 @@ export function BumpChart({
                       height={boxHeight}
                       rx={4}
                       fill={color}
-                      fillOpacity={isDimmed ? 0.2 : isHighlighted ? 1 : 0.85}
+                      fillOpacity={isDimmed ? 0.1 : isHighlighted ? 1 : 0.9}
                       stroke={isHighlighted ? '#fff' : 'none'}
                       strokeWidth={2}
                       className="transition-all duration-200"
@@ -280,25 +303,38 @@ export function BumpChart({
                       textAnchor="middle"
                       dominantBaseline="middle"
                       className={cn(
-                        "text-[10px] font-semibold pointer-events-none select-none",
+                        "text-[11px] font-semibold pointer-events-none select-none",
                         isDimmed ? "fill-muted-foreground" : "fill-white"
                       )}
-                      style={{ textShadow: isDimmed ? 'none' : '0 1px 2px rgba(0,0,0,0.3)' }}
+                      style={{ textShadow: isDimmed ? 'none' : '0 1px 2px rgba(0,0,0,0.5)' }}
                     >
-                      {ranking.theme.length > 14 ? ranking.theme.slice(0, 12) + '..' : ranking.theme}
+                      {baseCaseText}
                     </text>
-                    {/* Call count badge */}
-                    <text
-                      x={x + boxWidth / 2 - 4}
-                      y={y - boxHeight / 2 + 8}
-                      textAnchor="end"
-                      className={cn(
-                        "text-[8px] pointer-events-none",
-                        isDimmed ? "fill-muted-foreground" : "fill-white/70"
-                      )}
-                    >
-                      {ranking.count}
-                    </text>
+
+                    {/* Tooltip for BASE CASE full subtitle */}
+                    {isBaseCaseHovered && bc && (
+                      <g>
+                        <rect
+                          x={x - 100}
+                          y={y - boxHeight / 2 - 30}
+                          width={200}
+                          height={24}
+                          rx={4}
+                          fill="hsl(var(--popover))"
+                          stroke="hsl(var(--border))"
+                          strokeWidth={1}
+                          className="drop-shadow-lg"
+                        />
+                        <text
+                          x={x}
+                          y={y - boxHeight / 2 - 14}
+                          textAnchor="middle"
+                          className="fill-popover-foreground text-[11px] font-medium pointer-events-none"
+                        >
+                          {bc.subtitle}
+                        </text>
+                      </g>
+                    )}
                   </g>
                 );
               })}
