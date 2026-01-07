@@ -60,8 +60,8 @@ function placeWords(
 ): PlacedWord[] {
   const padding = 20;
   const innerWidth = width - padding * 2;
-  const barAreaHeight = height * 0.4;  // Top 40% for bars
-  const textAreaHeight = height * 0.6; // Bottom 60% for text
+  const barAreaHeight = height * 0.35;  // Top 35% for bars
+  const textAreaHeight = height * 0.65; // Bottom 65% for text
   const baseline = barAreaHeight;
 
   // Sort by TF-IDF descending (place most important first)
@@ -70,9 +70,10 @@ function placeWords(
   const placedWords: PlacedWord[] = [];
   const occupiedRects: { x: number; y: number; w: number; h: number }[] = [];
 
-  // Font size scale
-  const minFontSize = 10;
-  const maxFontSize = 24;
+  // Font size scale - larger for bigger panels
+  const isLargePanel = width > 500;
+  const minFontSize = isLargePanel ? 12 : 10;
+  const maxFontSize = isLargePanel ? 32 : 24;
 
   for (const word of sortedWords) {
     // Calculate font size based on TF-IDF
@@ -301,6 +302,9 @@ export function TrueWordRain({
   // Prepare words for each year
   const yearWordData = useMemo(() => {
     const result: Record<number, WordData[]> = {};
+    // Show more words for larger panels (single year view)
+    const isLargePanel = panelWidth > 500;
+    const maxWordsPerYear = isLargePanel ? 60 : 40;
 
     years.forEach(year => {
       const yearWords: WordData[] = [];
@@ -320,11 +324,11 @@ export function TrueWordRain({
       // Sort by TF-IDF and take top words
       result[year] = yearWords
         .sort((a, b) => b.tfidf - a.tfidf)
-        .slice(0, 40);
+        .slice(0, maxWordsPerYear);
     });
 
     return result;
-  }, [words, years, sentimentData]);
+  }, [words, years, sentimentData, panelWidth]);
 
   const handleWordHover = useCallback((word: string | null) => {
     setHoveredWord(word);
@@ -366,11 +370,14 @@ export function TrueWordRain({
 
       {/* Grid of year panels */}
       <div
-        className="grid gap-2 bg-muted/30 p-4 rounded-lg overflow-x-auto"
-        style={{
+        className={cn(
+          "bg-muted/30 p-4 rounded-lg overflow-x-auto",
+          years.length === 1 ? "flex justify-center" : "grid gap-2"
+        )}
+        style={years.length > 1 ? {
           gridTemplateColumns: `repeat(${columns}, ${panelWidth}px)`,
           maxWidth: '100%'
-        }}
+        } : undefined}
       >
         {years.map(year => (
           <div

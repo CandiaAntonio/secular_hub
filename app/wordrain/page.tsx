@@ -44,6 +44,7 @@ export default function WordRainPage() {
   const [sentimentData, setSentimentData] = useState<Record<string, number>>({});
   const [sentimentLoading, setSentimentLoading] = useState(false);
   const [colorMode, setColorMode] = useState<'sentiment' | 'semantic'>('sentiment');
+  const [selectedYear, setSelectedYear] = useState<string>("all");
 
   // Fetch Word Rain data
   const fetchData = useCallback(async (limit: string) => {
@@ -126,7 +127,23 @@ export default function WordRainPage() {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Year Selector */}
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-[160px]">
+              <Calendar className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {data?.years?.map((year) => (
+                <SelectItem key={year} value={String(year)}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           {/* Color Mode Toggle */}
           <div className="flex items-center gap-2">
             <Label htmlFor="color-mode" className="text-sm text-muted-foreground">
@@ -274,12 +291,12 @@ export default function WordRainPage() {
           ) : data?.words && data.words.length > 0 ? (
             <TrueWordRain
               words={data.words}
-              years={data.years}
+              years={selectedYear === "all" ? data.years : [parseInt(selectedYear)]}
               sentimentData={sentimentData}
               colorMode={colorMode}
-              panelWidth={280}
-              panelHeight={380}
-              columns={4}
+              panelWidth={selectedYear === "all" ? 280 : 800}
+              panelHeight={selectedYear === "all" ? 380 : 500}
+              columns={selectedYear === "all" ? 4 : 1}
             />
           ) : (
             <p className="text-muted-foreground text-center min-h-[400px] flex items-center justify-center">
