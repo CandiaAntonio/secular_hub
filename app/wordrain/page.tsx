@@ -35,7 +35,7 @@ interface SentimentResult {
 }
 
 export default function WordRainPage() {
-  const [wordLimit, setWordLimit] = useState<string>("50");
+  const [wordLimit, setWordLimit] = useState<string>("300");
   const [data, setData] = useState<WordRainResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -163,10 +163,10 @@ export default function WordRainPage() {
               <SelectValue placeholder="Words" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="50">50 words</SelectItem>
-              <SelectItem value="75">75 words</SelectItem>
               <SelectItem value="100">100 words</SelectItem>
               <SelectItem value="150">150 words</SelectItem>
+              <SelectItem value="200">200 words</SelectItem>
+              <SelectItem value="300">300 words</SelectItem>
             </SelectContent>
           </Select>
         </div>

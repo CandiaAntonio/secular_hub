@@ -101,7 +101,8 @@ async function getSemanticPositions(words: string[]): Promise<Map<string, number
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         words,
-        perplexity: Math.min(30, Math.max(5, words.length - 1)),
+        // perplexity must be strictly less than n_samples
+        perplexity: Math.min(30, Math.max(2, words.length - 1)),
         n_iter: 500
       }),
       signal: AbortSignal.timeout(30000) // 30 second timeout
@@ -140,8 +141,8 @@ export async function GET(request: Request) {
   const startYearParam = searchParams.get('startYear');
   const endYearParam = searchParams.get('endYear');
 
-  // Parse parameters
-  const limit = Math.min(Math.max(parseInt(limitParam || '50', 10), 20), 100);
+  // Parse parameters (per Uppsala paper: 300 words)
+  const limit = Math.min(Math.max(parseInt(limitParam || '300', 10), 20), 300);
   const startYear = startYearParam ? parseInt(startYearParam, 10) : 2019;
   const endYear = endYearParam ? parseInt(endYearParam, 10) : 2026;
 

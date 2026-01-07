@@ -153,8 +153,8 @@ async def compute_wordrain(request: WordRainRequest):
     if not request.words:
         raise HTTPException(status_code=400, detail="Words list cannot be empty")
 
-    if len(request.words) > 200:
-        raise HTTPException(status_code=400, detail="Maximum 200 words allowed")
+    if len(request.words) > 300:
+        raise HTTPException(status_code=400, detail="Maximum 300 words allowed")
 
     # Get embeddings
     embeddings = get_embeddings_batch(request.words)

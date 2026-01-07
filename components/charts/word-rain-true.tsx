@@ -50,9 +50,9 @@ function placeWords(
   height: number,
   maxTfidf: number
 ): PlacedWord[] {
-  // Zone definitions (following the paper)
+  // Zone definitions (following the paper - bar_ratio = 1/3)
   const titleHeight = 40;           // Zone a: title
-  const barZoneHeight = height * 0.22; // Zone b: bars only (top ~22%)
+  const barZoneHeight = height * 0.33; // Zone b: bars only (top 33%)
   const wordZoneStart = titleHeight + barZoneHeight; // Zone c starts here
   const wordZoneHeight = height - wordZoneStart - 20; // Zones c+d: words
 
@@ -65,9 +65,9 @@ function placeWords(
   const placedWords: PlacedWord[] = [];
   const occupiedRects: { x1: number; y1: number; x2: number; y2: number }[] = [];
 
-  // Font size range
-  const minFontSize = 9;
-  const maxFontSize = Math.min(36, width / 30);
+  // Font size range (per Uppsala paper: base 16, range 6-32)
+  const minFontSize = 6;
+  const maxFontSize = Math.min(32, width / 30);
 
   for (const word of sortedWords) {
     // Normalize TF-IDF using log scale
@@ -237,14 +237,14 @@ function WordRainPanel({
               y1={word.y + 2}
               y2={word.barTop}
               stroke={word.color}
-              strokeWidth={isHovered ? 1.8 : 1.2}
+              strokeWidth={isHovered ? 1.2 : 0.8}
               strokeOpacity={0.65}
             />
             {/* Circle at top of bar */}
             <circle
               cx={word.x}
               cy={word.barTop}
-              r={isHovered ? 3 : 2}
+              r={isHovered ? 2.5 : 1.5}
               fill={word.color}
               fillOpacity={0.85}
             />
@@ -340,7 +340,7 @@ export function TrueWordRain({
         }))
         .filter(w => w.tfidf > 0)
         .sort((a, b) => b.tfidf - a.tfidf)
-        .slice(0, 60);
+        .slice(0, 300);
     } else {
       const year = years[0];
       return words
@@ -354,7 +354,7 @@ export function TrueWordRain({
         })
         .filter(w => w.tfidf > 0)
         .sort((a, b) => b.tfidf - a.tfidf)
-        .slice(0, 55);
+        .slice(0, 300);
     }
   }, [words, years, isAllYears]);
 
@@ -374,8 +374,8 @@ export function TrueWordRain({
         </div>
         <div className="flex items-center gap-2">
           <svg width="20" height="30" className="overflow-visible">
-            <line x1="10" y1="28" x2="10" y2="6" stroke="#94a3b8" strokeWidth="1.5" />
-            <circle cx="10" cy="6" r="2.5" fill="#94a3b8" />
+            <line x1="10" y1="28" x2="10" y2="6" stroke="#94a3b8" strokeWidth="0.8" />
+            <circle cx="10" cy="6" r="1.5" fill="#94a3b8" />
           </svg>
           <span>Bar height = TF-IDF</span>
         </div>
