@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { TrueWordRain, TrueWordRainProps } from "@/components/charts/word-rain-true";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { TrueWordRain } from "@/components/charts/word-rain-true";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -43,8 +41,22 @@ export default function WordRainPage() {
   const [error, setError] = useState<string | null>(null);
   const [sentimentData, setSentimentData] = useState<Record<string, number>>({});
   const [sentimentLoading, setSentimentLoading] = useState(false);
-  const [colorMode, setColorMode] = useState<'sentiment' | 'semantic'>('sentiment');
   const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [panelWidth, setPanelWidth] = useState(900);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Responsive panel width
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth - 48;
+        setPanelWidth(Math.min(1100, Math.max(600, width)));
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   // Fetch Word Rain data
   const fetchData = useCallback(async (limit: string) => {
@@ -112,7 +124,7 @@ export default function WordRainPage() {
   , data?.words?.[0]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500" ref={containerRef}>
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -130,12 +142,12 @@ export default function WordRainPage() {
         <div className="flex flex-wrap items-center gap-4">
           {/* Year Selector */}
           <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[180px]">
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Year" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Years</SelectItem>
+              <SelectItem value="all">All Years (Aggregated)</SelectItem>
               {data?.years?.map((year) => (
                 <SelectItem key={year} value={String(year)}>
                   {year}
@@ -144,18 +156,6 @@ export default function WordRainPage() {
             </SelectContent>
           </Select>
 
-          {/* Color Mode Toggle */}
-          <div className="flex items-center gap-2">
-            <Label htmlFor="color-mode" className="text-sm text-muted-foreground">
-              Color by sentiment
-            </Label>
-            <Switch
-              id="color-mode"
-              checked={colorMode === 'sentiment'}
-              onCheckedChange={(checked) => setColorMode(checked ? 'sentiment' : 'semantic')}
-            />
-          </div>
-
           {/* Word Limit Selector */}
           <Select value={wordLimit} onValueChange={setWordLimit}>
             <SelectTrigger className="w-[140px]">
@@ -163,10 +163,10 @@ export default function WordRainPage() {
               <SelectValue placeholder="Words" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="30">30 words</SelectItem>
               <SelectItem value="50">50 words</SelectItem>
               <SelectItem value="75">75 words</SelectItem>
               <SelectItem value="100">100 words</SelectItem>
+              <SelectItem value="150">150 words</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -292,11 +292,8 @@ export default function WordRainPage() {
             <TrueWordRain
               words={data.words}
               years={selectedYear === "all" ? data.years : [parseInt(selectedYear)]}
-              sentimentData={sentimentData}
-              colorMode={colorMode}
-              panelWidth={selectedYear === "all" ? 280 : 800}
-              panelHeight={selectedYear === "all" ? 380 : 500}
-              columns={selectedYear === "all" ? 4 : 1}
+              panelWidth={panelWidth}
+              panelHeight={700}
             />
           ) : (
             <p className="text-muted-foreground text-center min-h-[400px] flex items-center justify-center">
