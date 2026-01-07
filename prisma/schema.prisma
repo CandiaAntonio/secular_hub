@@ -64,3 +64,33 @@ model MigrationRun {
 
   @@map("migration_runs")
 }
+
+// Pre-computed word cloud cache for fast loading
+model WordCloudCache {
+  id          String   @id @default(cuid())
+  year        Int      // Year filter (0 = all years)
+  mode        String   // 'words' or 'phrases'
+  scoring     String   // 'frequency' or 'importance'
+  wordLimit   Int      @map("word_limit") // 50, 100, or 150
+  data        String   // JSON stringified word cloud data
+  totalDocs   Int      @map("total_docs")
+  uniqueInst  Int      @map("unique_inst")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([year, mode, scoring, wordLimit])
+  @@map("word_cloud_cache")
+}
+
+// Pre-computed sentiment cache for instant lookups
+model SentimentCache {
+  id              String   @id @default(cuid())
+  term            String   @unique
+  label           String   // 'positive', 'negative', 'neutral'
+  score           Float
+  normalizedScore Float    @map("normalized_score")
+  source          String   @default("dictionary") // 'dictionary' or 'finbert'
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("sentiment_cache")
+}

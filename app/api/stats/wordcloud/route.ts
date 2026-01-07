@@ -152,6 +152,7 @@ export async function GET(request: Request) {
   const limitParam = searchParams.get('limit');
   const modeParam = searchParams.get('mode') || 'words'; // 'words' or 'phrases'
   const scoringParam = searchParams.get('scoring') || 'frequency'; // 'frequency' or 'importance'
+  const skipCache = searchParams.get('skipCache') === 'true';
 
   // Parse year filter
   const year = yearParam ? parseInt(yearParam, 10) : null;
@@ -164,6 +165,50 @@ export async function GET(request: Request) {
   const mode = modeParam === 'phrases' ? 'phrases' : 'words';
   const scoring = scoringParam === 'importance' ? 'importance' : 'frequency';
 
+  // Try to get from cache first (unless skipCache is true)
+  if (!skipCache) {
+    try {
+      const cached = await prisma.wordCloudCache.findUnique({
+        where: {
+          year_mode_scoring_wordLimit: {
+            year: year || 0,
+            mode,
+            scoring,
+            wordLimit: limit,
+          },
+        },
+      });
+
+      if (cached) {
+        // Get available years
+        const yearsRaw = await prisma.outlookCall.groupBy({
+          by: ['year'],
+          orderBy: { year: 'desc' },
+        });
+        const availableYears = yearsRaw.map(y => y.year);
+
+        const words = JSON.parse(cached.data);
+
+        return NextResponse.json({
+          year: year || 'all',
+          limit,
+          mode,
+          scoring,
+          wordCount: words.length,
+          totalDocuments: cached.totalDocs,
+          uniqueInstitutions: cached.uniqueInst,
+          words,
+          availableYears,
+          cached: true,
+          cachedAt: cached.updatedAt,
+        });
+      }
+    } catch (cacheError) {
+      console.log('Cache miss or error, computing fresh data:', cacheError);
+    }
+  }
+
+  // No cache hit - compute fresh data
   // Build query filter
   const where = year ? { year } : {};
 
@@ -227,6 +272,36 @@ export async function GET(request: Request) {
   const availableYears = yearsRaw.map(y => y.year);
   const uniqueInstitutions = institutionsRaw.length;
 
+  // Save to cache for next time
+  try {
+    await prisma.wordCloudCache.upsert({
+      where: {
+        year_mode_scoring_wordLimit: {
+          year: year || 0,
+          mode,
+          scoring,
+          wordLimit: limit,
+        },
+      },
+      update: {
+        data: JSON.stringify(sortedWords),
+        totalDocs: calls.length,
+        uniqueInst: uniqueInstitutions,
+      },
+      create: {
+        year: year || 0,
+        mode,
+        scoring,
+        wordLimit: limit,
+        data: JSON.stringify(sortedWords),
+        totalDocs: calls.length,
+        uniqueInst: uniqueInstitutions,
+      },
+    });
+  } catch (cacheError) {
+    console.log('Failed to save to cache:', cacheError);
+  }
+
   return NextResponse.json({
     year: year || 'all',
     limit,
@@ -237,5 +312,6 @@ export async function GET(request: Request) {
     uniqueInstitutions,
     words: sortedWords,
     availableYears,
+    cached: false,
   });
 }

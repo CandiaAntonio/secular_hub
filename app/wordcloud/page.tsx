@@ -13,7 +13,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Cloud, FileText, Calendar, TrendingUp, Building2, Loader2 } from "lucide-react";
+import { Cloud, FileText, Calendar, TrendingUp, Building2, Loader2, Info } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface WordCloudResponse {
@@ -43,6 +50,7 @@ export default function WordCloudPage() {
   const [error, setError] = useState<string | null>(null);
   const [sentimentData, setSentimentData] = useState<SentimentData>({});
   const [sentimentLoading, setSentimentLoading] = useState(false);
+  const [sentimentEnabled, setSentimentEnabled] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
 
@@ -103,12 +111,14 @@ export default function WordCloudPage() {
     fetchData(selectedYear, wordLimit, mode, scoring);
   }, [selectedYear, wordLimit, mode, scoring, fetchData]);
 
-  // Fetch sentiment when words change
+  // Fetch sentiment when words change (only if enabled)
   useEffect(() => {
-    if (data?.words && data.words.length > 0) {
+    if (data?.words && data.words.length > 0 && sentimentEnabled) {
       fetchSentiment(data.words);
+    } else if (!sentimentEnabled) {
+      setSentimentData({});
     }
-  }, [data?.words, fetchSentiment]);
+  }, [data?.words, fetchSentiment, sentimentEnabled]);
 
   // Responsive dimensions
   useEffect(() => {
@@ -284,28 +294,62 @@ export default function WordCloudPage() {
           </div>
         </div>
 
-        {/* Sentiment Loading Indicator */}
-        {sentimentLoading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Analyzing sentiment...
-          </div>
-        )}
+        {/* Sentiment Toggle with FinBERT info */}
+        <div className="flex items-center gap-3 ml-auto">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="sentiment-toggle"
+                    checked={sentimentEnabled}
+                    onCheckedChange={setSentimentEnabled}
+                  />
+                  <label
+                    htmlFor="sentiment-toggle"
+                    className="text-sm font-medium cursor-pointer flex items-center gap-1"
+                  >
+                    Sentiment Colors
+                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                  </label>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <p className="font-medium mb-1">FinBERT Sentiment Analysis</p>
+                <p className="text-xs text-muted-foreground">
+                  Colors are powered by <span className="font-semibold">FinBERT</span>, a BERT model
+                  fine-tuned on financial text. It classifies terms as bullish (green),
+                  bearish (red), or neutral (gray) based on their financial sentiment.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        {/* Sentiment Legend */}
-        <div className="flex items-center gap-4 ml-auto">
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-green-500" />
-            <span className="text-xs text-muted-foreground">Bullish</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-slate-400" />
-            <span className="text-xs text-muted-foreground">Neutral</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-red-500" />
-            <span className="text-xs text-muted-foreground">Bearish</span>
-          </div>
+          {/* Sentiment Loading Indicator */}
+          {sentimentLoading && sentimentEnabled && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="hidden sm:inline">Analyzing...</span>
+            </div>
+          )}
+
+          {/* Sentiment Legend - only show when enabled */}
+          {sentimentEnabled && (
+            <div className="flex items-center gap-3 border-l pl-3">
+              <div className="flex items-center gap-1.5">
+                <div className="h-3 w-3 rounded-full bg-green-500" />
+                <span className="text-xs text-muted-foreground">Bullish</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="h-3 w-3 rounded-full bg-slate-400" />
+                <span className="text-xs text-muted-foreground">Neutral</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="h-3 w-3 rounded-full bg-red-500" />
+                <span className="text-xs text-muted-foreground">Bearish</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -329,7 +373,7 @@ export default function WordCloudPage() {
               height={dimensions.height}
               onWordClick={handleWordClick}
               sentimentData={sentimentData}
-              showSentiment={Object.keys(sentimentData).length > 0}
+              showSentiment={sentimentEnabled && Object.keys(sentimentData).length > 0}
             />
           ) : (
             <p className="text-muted-foreground">No data available for this year</p>
@@ -350,7 +394,7 @@ export default function WordCloudPage() {
               {data.words.slice(0, 20).map((word) => {
                 const sentiment = sentimentData[word.text];
                 let sentimentColor = 'bg-slate-100';
-                if (sentiment !== undefined) {
+                if (sentimentEnabled && sentiment !== undefined) {
                   if (sentiment > 0.3) sentimentColor = 'bg-green-50 border-green-200';
                   else if (sentiment < -0.3) sentimentColor = 'bg-red-50 border-red-200';
                 }

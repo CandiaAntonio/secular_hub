@@ -1,47 +1,38 @@
 """
-Word2Vec embeddings module for Word Rain visualization.
-Uses pre-trained Word2Vec model to get semantic embeddings for words.
+Word embeddings module for Word Rain visualization.
+Uses sentence-transformers for semantic embeddings.
 """
 
 import os
 import pickle
 import numpy as np
 from typing import Dict, List, Optional
-from gensim.models import KeyedVectors
-import gensim.downloader as api
 
 # Cache directory for embeddings
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
 EMBEDDINGS_CACHE_FILE = os.path.join(CACHE_DIR, "word_embeddings.pkl")
 
 # Global model instance
-_model: Optional[KeyedVectors] = None
+_model = None
 
 
-def get_model() -> KeyedVectors:
+def get_model():
     """
-    Load or download the Word2Vec model.
-    Uses 'glove-wiki-gigaword-100' for balance of quality and size.
-    Alternative: 'word2vec-google-news-300' (larger, more accurate)
+    Load the sentence-transformers model.
+    Uses 'all-MiniLM-L6-v2' - small, fast, and effective.
     """
     global _model
 
     if _model is not None:
         return _model
 
-    print("Loading Word2Vec model...")
-
-    # Use GloVe model (smaller, faster to download)
-    # Options:
-    # - 'glove-wiki-gigaword-100' (~128MB) - good balance
-    # - 'glove-wiki-gigaword-300' (~376MB) - better quality
-    # - 'word2vec-google-news-300' (~1.6GB) - best for general text
-
-    model_name = 'glove-wiki-gigaword-100'
+    print("Loading sentence-transformers model...")
 
     try:
-        _model = api.load(model_name)
-        print(f"Model '{model_name}' loaded successfully!")
+        from sentence_transformers import SentenceTransformer
+        # all-MiniLM-L6-v2 is small (~80MB) and fast
+        _model = SentenceTransformer('all-MiniLM-L6-v2')
+        print("Model loaded successfully!")
     except Exception as e:
         print(f"Error loading model: {e}")
         raise
@@ -49,36 +40,26 @@ def get_model() -> KeyedVectors:
     return _model
 
 
-def get_embedding(word: str, model: Optional[KeyedVectors] = None) -> Optional[np.ndarray]:
+def get_embedding(word: str, model=None) -> Optional[np.ndarray]:
     """
-    Get the embedding vector for a single word.
-    Returns None if word not in vocabulary.
+    Get the embedding vector for a single word/phrase.
     """
     if model is None:
         model = get_model()
 
-    # Try the word as-is, then lowercase
-    for w in [word, word.lower()]:
-        if w in model.key_to_index:
-            return model[w]
-
-    # For multi-word phrases, average the embeddings
-    words = word.lower().split()
-    if len(words) > 1:
-        vectors = []
-        for w in words:
-            if w in model.key_to_index:
-                vectors.append(model[w])
-        if vectors:
-            return np.mean(vectors, axis=0)
-
-    return None
+    try:
+        # Sentence transformers can handle words and phrases
+        embedding = model.encode(word, convert_to_numpy=True)
+        return embedding
+    except Exception as e:
+        print(f"Error getting embedding for '{word}': {e}")
+        return None
 
 
 def get_embeddings_batch(words: List[str]) -> Dict[str, Optional[np.ndarray]]:
     """
     Get embeddings for a batch of words.
-    Returns dict mapping word -> embedding (or None if not found).
+    Returns dict mapping word -> embedding (or None if error).
     """
     model = get_model()
 
@@ -95,14 +76,21 @@ def get_embeddings_batch(words: List[str]) -> Dict[str, Optional[np.ndarray]]:
         else:
             words_to_compute.append(word)
 
-    # Compute missing embeddings
-    for word in words_to_compute:
-        embedding = get_embedding(word, model)
-        result[word] = embedding
-
-        # Update cache
-        if embedding is not None:
-            cache[word.lower()] = embedding
+    # Compute missing embeddings in batch (more efficient)
+    if words_to_compute:
+        try:
+            embeddings = model.encode(words_to_compute, convert_to_numpy=True)
+            for word, embedding in zip(words_to_compute, embeddings):
+                result[word] = embedding
+                cache[word.lower()] = embedding
+        except Exception as e:
+            print(f"Error batch encoding: {e}")
+            # Fallback to individual encoding
+            for word in words_to_compute:
+                embedding = get_embedding(word, model)
+                result[word] = embedding
+                if embedding is not None:
+                    cache[word.lower()] = embedding
 
     # Save updated cache
     save_cache(cache)
@@ -137,24 +125,8 @@ def save_cache(cache: Dict[str, np.ndarray]) -> None:
 
 def get_vocabulary_coverage(words: List[str]) -> Dict[str, bool]:
     """
-    Check which words are in the model vocabulary.
-    Returns dict mapping word -> True/False.
+    Check which words can be embedded.
+    With sentence-transformers, all words can be embedded.
     """
-    model = get_model()
-
-    result = {}
-    for word in words:
-        found = False
-        for w in [word, word.lower()]:
-            if w in model.key_to_index:
-                found = True
-                break
-
-        # Check multi-word phrases
-        if not found and ' ' in word:
-            phrase_words = word.lower().split()
-            found = any(w in model.key_to_index for w in phrase_words)
-
-        result[word] = found
-
-    return result
+    # Sentence transformers can embed any text
+    return {word: True for word in words}

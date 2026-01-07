@@ -42,13 +42,15 @@ def reduce_to_1d(
     vectors = np.array([valid_embeddings[w] for w in words])
 
     # Adjust perplexity if we have few samples
-    effective_perplexity = min(perplexity, max(5, len(words) - 1))
+    # perplexity must be strictly less than n_samples
+    effective_perplexity = min(perplexity, len(words) - 1)
+    effective_perplexity = max(2, effective_perplexity)  # minimum perplexity of 2
 
     # Run t-SNE to 1D
     tsne = TSNE(
         n_components=1,
         perplexity=effective_perplexity,
-        n_iter=n_iter,
+        max_iter=n_iter,
         random_state=random_state,
         metric='cosine',
         init='random'
@@ -97,12 +99,14 @@ def reduce_to_2d(
     words = list(valid_embeddings.keys())
     vectors = np.array([valid_embeddings[w] for w in words])
 
-    effective_perplexity = min(perplexity, max(5, len(words) - 1))
+    # perplexity must be strictly less than n_samples
+    effective_perplexity = min(perplexity, len(words) - 1)
+    effective_perplexity = max(2, effective_perplexity)  # minimum perplexity of 2
 
     tsne = TSNE(
         n_components=2,
         perplexity=effective_perplexity,
-        n_iter=n_iter,
+        max_iter=n_iter,
         random_state=random_state,
         metric='cosine',
         init='random'
