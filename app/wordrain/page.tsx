@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { WordRainChart, WordRainWord } from "@/components/charts/word-rain";
+import { useState, useEffect, useCallback } from "react";
+import { TrueWordRain, TrueWordRainProps } from "@/components/charts/word-rain-true";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -12,9 +14,15 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { CloudRain, Hash, Calendar, TrendingUp, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+interface WordRainWord {
+  text: string;
+  semanticX: number;
+  avgTfidf: number;
+  yearData: Record<number, { frequency: number; tfidf: number; sentiment?: number }>;
+}
 
 interface WordRainResponse {
   years: number[];
@@ -35,8 +43,7 @@ export default function WordRainPage() {
   const [error, setError] = useState<string | null>(null);
   const [sentimentData, setSentimentData] = useState<Record<string, number>>({});
   const [sentimentLoading, setSentimentLoading] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 900, height: 600 });
+  const [colorMode, setColorMode] = useState<'sentiment' | 'semantic'>('sentiment');
 
   // Fetch Word Rain data
   const fetchData = useCallback(async (limit: string) => {
@@ -98,34 +105,13 @@ export default function WordRainPage() {
     }
   }, [data?.words, fetchSentiment]);
 
-  // Responsive dimensions
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setDimensions({
-          width: Math.max(rect.width - 48, 600),
-          height: Math.max(Math.min(rect.width * 0.6, 700), 500),
-        });
-      }
-    };
-
-    updateDimensions();
-    window.addEventListener("resize", updateDimensions);
-    return () => window.removeEventListener("resize", updateDimensions);
-  }, []);
-
-  const handleWordClick = (word: string) => {
-    console.log("Clicked word:", word);
-  };
-
   // Find peak word (highest average TF-IDF)
   const peakWord = data?.words?.reduce((max, w) =>
     w.avgTfidf > (max?.avgTfidf || 0) ? w : max
   , data?.words?.[0]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500" ref={containerRef}>
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -139,19 +125,34 @@ export default function WordRainPage() {
           </p>
         </div>
 
-        {/* Word Limit Selector */}
-        <Select value={wordLimit} onValueChange={setWordLimit}>
-          <SelectTrigger className="w-[140px]">
-            <Hash className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Words" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="30">30 words</SelectItem>
-            <SelectItem value="50">50 words</SelectItem>
-            <SelectItem value="75">75 words</SelectItem>
-            <SelectItem value="100">100 words</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Controls */}
+        <div className="flex items-center gap-4">
+          {/* Color Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="color-mode" className="text-sm text-muted-foreground">
+              Color by sentiment
+            </Label>
+            <Switch
+              id="color-mode"
+              checked={colorMode === 'sentiment'}
+              onCheckedChange={(checked) => setColorMode(checked ? 'sentiment' : 'semantic')}
+            />
+          </div>
+
+          {/* Word Limit Selector */}
+          <Select value={wordLimit} onValueChange={setWordLimit}>
+            <SelectTrigger className="w-[140px]">
+              <Hash className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Words" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30">30 words</SelectItem>
+              <SelectItem value="50">50 words</SelectItem>
+              <SelectItem value="75">75 words</SelectItem>
+              <SelectItem value="100">100 words</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Stats Row */}
@@ -255,53 +256,35 @@ export default function WordRainPage() {
             Python service unavailable - using fallback positioning
           </div>
         )}
-
-        {/* Sentiment Legend */}
-        <div className="flex items-center gap-4 ml-auto">
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-green-500" />
-            <span className="text-xs text-muted-foreground">Bullish</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-slate-400" />
-            <span className="text-xs text-muted-foreground">Neutral</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-red-500" />
-            <span className="text-xs text-muted-foreground">Bearish</span>
-          </div>
-          <div className="flex items-center gap-1.5 border-l pl-4">
-            <div className="h-2 w-2 rounded-full bg-slate-400" />
-            <span className="text-xs text-muted-foreground">Size = TF-IDF</span>
-          </div>
-        </div>
       </div>
 
-      {/* Word Rain Chart */}
+      {/* Word Rain Visualization */}
       <Card className="relative overflow-hidden">
-        <CardContent className="flex justify-center items-center min-h-[600px] pt-6">
+        <CardContent className="pt-6">
           {loading ? (
-            <div className="flex flex-col items-center gap-4">
-              <Skeleton className="h-[500px] w-full max-w-[800px] rounded-lg" />
+            <div className="flex flex-col items-center gap-4 min-h-[400px] justify-center">
+              <Skeleton className="h-[350px] w-full rounded-lg" />
               <p className="text-sm text-muted-foreground">Generating word rain...</p>
             </div>
           ) : error ? (
-            <div className="text-destructive text-center">
+            <div className="text-destructive text-center min-h-[400px] flex flex-col justify-center">
               <p className="font-medium">Error loading data</p>
               <p className="text-sm">{error}</p>
             </div>
           ) : data?.words && data.words.length > 0 ? (
-            <WordRainChart
+            <TrueWordRain
               words={data.words}
               years={data.years}
-              width={dimensions.width}
-              height={dimensions.height}
-              onWordClick={handleWordClick}
               sentimentData={sentimentData}
-              showConnections={true}
+              colorMode={colorMode}
+              panelWidth={280}
+              panelHeight={380}
+              columns={4}
             />
           ) : (
-            <p className="text-muted-foreground">No data available</p>
+            <p className="text-muted-foreground text-center min-h-[400px] flex items-center justify-center">
+              No data available
+            </p>
           )}
         </CardContent>
       </Card>
@@ -326,10 +309,9 @@ export default function WordRainPage() {
                   <div
                     key={word.text}
                     className={cn(
-                      "flex items-center justify-between p-2 rounded-md border hover:bg-muted/50 transition-colors cursor-pointer",
+                      "flex items-center justify-between p-2 rounded-md border hover:bg-muted/50 transition-colors",
                       sentimentColor
                     )}
-                    onClick={() => handleWordClick(word.text)}
                   >
                     <span className="font-medium capitalize truncate text-sm">{word.text}</span>
                     <Badge variant="outline" className="ml-1 flex-shrink-0 text-xs">
